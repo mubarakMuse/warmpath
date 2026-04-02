@@ -51,12 +51,7 @@ type HomeProps = { searchParams: Promise<{ notice?: string }> };
 
 export default async function Home({ searchParams }: HomeProps) {
   const q = await searchParams;
-  const notice =
-    q.notice === "connector"
-      ? "connector"
-      : q.notice === "connect_signin"
-        ? "connect_signin"
-        : null;
+  const notice = q.notice === "connector" ? "connector" : null;
 
   return (
     <div className="flex min-h-full flex-col bg-warm-canvas">
@@ -67,15 +62,6 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="border-b border-amber-200 bg-amber-50 px-6 py-3 text-center text-sm text-amber-950">
             Hiring tools live in <strong>Hiring log in</strong>. Connector accounts only use public role
             pages to refer or apply.
-          </div>
-        ) : null}
-        {notice === "connect_signin" ? (
-          <div className="border-b border-teal-200 bg-teal-50 px-6 py-3 text-center text-sm text-teal-950">
-            Sign in with <strong>Connector log in</strong> on any role page first, then open{" "}
-            <Link href="/connect/dashboard" className="font-semibold text-warm-accent underline">
-              My activity
-            </Link>
-            .
           </div>
         ) : null}
         <section className="mx-auto max-w-5xl px-6 pb-20 pt-16 md:pb-28 md:pt-24">

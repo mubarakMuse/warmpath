@@ -16,10 +16,10 @@ export default async function ConnectProtectedLayout({
   children: React.ReactNode;
 }) {
   const profileId = await getProfileIdFromSession();
-  if (!profileId) redirect("/?notice=connect_signin");
+  if (!profileId) redirect("/login");
 
   const row = await getSessionProfileRow();
-  if (!row) redirect("/?notice=connect_signin");
+  if (!row) redirect("/login?error=no_profile");
   if (row.account_role !== "connector") {
     redirect("/hire/dashboard");
   }

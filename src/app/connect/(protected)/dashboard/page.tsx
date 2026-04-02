@@ -118,7 +118,7 @@ function SubmissionCard({
 
 export default async function ConnectorDashboardPage() {
   const profileId = await getProfileIdFromSession();
-  if (!profileId) redirect("/?notice=connect_signin");
+  if (!profileId) redirect("/login");
 
   const row = await getSessionProfileRow();
   if (!row || row.account_role !== "connector") redirect("/hire/dashboard");

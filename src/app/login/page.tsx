@@ -18,6 +18,8 @@ const LOGIN_ERROR_HINTS: Record<string, string> = {
   config: "Server configuration error. Check environment variables.",
   missing_code: "Sign-in was cancelled or incomplete. Try again.",
   admin: "You need admin access to open that page. Set WARMPATH_ADMIN_EMAILS or use an admin profile.",
+  no_profile:
+    "We couldn’t load your profile (your session may be outdated). Sign in again. If this keeps happening, confirm the server has SUPABASE_SERVICE_ROLE_KEY set.",
 };
 
 export default async function LoginPage({ searchParams }: Props) {
