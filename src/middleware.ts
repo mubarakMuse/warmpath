@@ -2,6 +2,15 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const sp = request.nextUrl.searchParams;
+  /** Supabase sometimes lands on `/` with `?code=` if redirect URL config is off; callback route must run. */
+  if (pathname === "/" && sp.has("code")) {
+    const dest = request.nextUrl.clone();
+    dest.pathname = "/auth/callback";
+    return NextResponse.redirect(dest);
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
