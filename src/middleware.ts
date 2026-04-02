@@ -4,8 +4,11 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const sp = request.nextUrl.searchParams;
-  /** Supabase sometimes lands on `/` with `?code=` if redirect URL config is off; callback route must run. */
-  if (pathname === "/" && sp.has("code")) {
+  /**
+   * OAuth must hit `/auth/callback` (exchange code + set session). If Supabase Redirect URLs or Site URL
+   * are wrong, the `code` can land on `/` or `/login` instead — forward and keep query params.
+   */
+  if ((pathname === "/" || pathname === "/login") && sp.has("code")) {
     const dest = request.nextUrl.clone();
     dest.pathname = "/auth/callback";
     return NextResponse.redirect(dest);
