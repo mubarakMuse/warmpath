@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 import { getAdminSessionProfile } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeReferralBonusForStorage } from "@/lib/referral-bonus";
+import {
+  fetchCompanySnapshot,
+  getPrimaryCompanyIdForProfile,
+  profileHasCompanyMembership,
+  setProfilePrimaryCompany,
+} from "@/lib/admin/profile-companies";
 import { makeCompanySlug, makeRoleSlug } from "@/lib/slug";
 
 export type AdminFormState = { error?: string; ok?: boolean; message?: string };
@@ -106,76 +112,67 @@ export async function adminAssignProfileToCompany(
     co = row;
   }
 
-  const profileUpdates = {
-    company_id: co?.id ?? null,
-    company_name: co?.name ?? null,
-    company_website: co?.website ?? null,
-    company_linkedin_url: co?.linkedin_url ?? null,
-    company_logo_url: co?.logo_url ?? null,
-  };
+  try {
+    await setProfilePrimaryCompany(admin, profileId, companyId);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Could not update company links." };
+  }
 
-  const { error: uErr } = await admin.from("profiles").update(profileUpdates).eq("id", profileId);
+  const { error: uErr } = await admin
+    .from("roles")
+    .update({
+      hirer_full_name: profile.full_name,
+      hirer_linkedin_url: profile.linkedin_url,
+      hirer_avatar_url: profile.avatar_url,
+    })
+    .eq("hirer_id", profileId);
   if (uErr) return { error: uErr.message };
-
-  const roleDisplay = {
-    hirer_full_name: profile.full_name,
-    hirer_linkedin_url: profile.linkedin_url,
-    hirer_avatar_url: profile.avatar_url,
-    company_name: co?.name ?? null,
-    company_website: co?.website ?? null,
-    company_linkedin_url: co?.linkedin_url ?? null,
-    company_logo_url: co?.logo_url ?? null,
-    company_id: co?.id ?? null,
-  };
-
-  const { error: rErr } = await admin.from("roles").update(roleDisplay).eq("hirer_id", profileId);
-  if (rErr) return { error: rErr.message };
 
   revalidatePath("/admin");
   revalidatePath("/admin/dashboard");
   return {
     ok: true,
-    message: co ? `Assigned to ${co.name}.` : "Company cleared from profile and their roles.",
+    message: co
+      ? `Primary company set to ${co.name}. Existing roles keep their own organization until you edit them.`
+      : "Company links cleared for this hiring manager.",
   };
 }
 
-async function syncRolesFromProfileCompany(
+async function syncHirerDisplayOnRoles(
   admin: ReturnType<typeof createAdminClient>,
   profileId: string,
 ) {
   const { data: profile, error: pErr } = await admin
     .from("profiles")
-    .select("full_name, linkedin_url, avatar_url, company_id, company_name, company_website, company_linkedin_url, company_logo_url")
+    .select("full_name, linkedin_url, avatar_url")
     .eq("id", profileId)
     .maybeSingle();
   if (pErr || !profile) return;
+  await admin
+    .from("roles")
+    .update({
+      hirer_full_name: profile.full_name,
+      hirer_linkedin_url: profile.linkedin_url,
+      hirer_avatar_url: profile.avatar_url,
+    })
+    .eq("hirer_id", profileId);
+}
 
-  let co: {
-    name: string;
-    website: string | null;
-    linkedin_url: string | null;
-    logo_url: string | null;
-  } | null = null;
-  if (profile.company_id) {
-    const { data: row } = await admin
-      .from("companies")
-      .select("name, website, linkedin_url, logo_url")
-      .eq("id", profile.company_id)
-      .maybeSingle();
-    if (row) co = row;
-  }
-
-  const roleDisplay = {
-    hirer_full_name: profile.full_name,
-    hirer_linkedin_url: profile.linkedin_url,
-    hirer_avatar_url: profile.avatar_url,
-    company_name: co?.name ?? profile.company_name,
-    company_website: co?.website ?? profile.company_website,
-    company_linkedin_url: co?.linkedin_url ?? profile.company_linkedin_url,
-    company_logo_url: co?.logo_url ?? profile.company_logo_url,
-    company_id: profile.company_id ?? null,
-  };
-  await admin.from("roles").update(roleDisplay).eq("hirer_id", profileId);
+async function refreshRolesCompanySnapshotByCompanyId(
+  admin: ReturnType<typeof createAdminClient>,
+  companyId: string,
+) {
+  const co = await fetchCompanySnapshot(admin, companyId);
+  if (!co) return;
+  await admin
+    .from("roles")
+    .update({
+      company_name: co.name,
+      company_website: co.website,
+      company_linkedin_url: co.linkedin_url,
+      company_logo_url: co.logo_url,
+    })
+    .eq("company_id", companyId);
 }
 
 export async function adminUpdateCompany(
@@ -207,6 +204,7 @@ export async function adminUpdateCompany(
       .update({ name, slug, website, linkedin_url, logo_url })
       .eq("id", id);
     if (!error) {
+      await refreshRolesCompanySnapshotByCompanyId(admin, id);
       revalidatePath("/admin");
       revalidatePath("/admin/dashboard");
       return { ok: true, message: "Company updated." };
@@ -288,35 +286,20 @@ export async function adminUpdateProfile(
     }
   }
 
-  const companyId =
+  const selectedCompanyId =
     account_role === "hirer" || account_role === "admin"
       ? companyIdRaw.length > 0
         ? companyIdRaw
         : null
       : null;
 
-  let companyPatch: Record<string, unknown> = {
-    company_id: null,
-    company_name: null,
-    company_website: null,
-    company_linkedin_url: null,
-    company_logo_url: null,
-  };
-
-  if (companyId) {
+  if (selectedCompanyId) {
     const { data: co, error: cErr } = await admin
       .from("companies")
-      .select("id, name, website, linkedin_url, logo_url")
-      .eq("id", companyId)
+      .select("id")
+      .eq("id", selectedCompanyId)
       .maybeSingle();
     if (cErr || !co) return { error: "Invalid company." };
-    companyPatch = {
-      company_id: co.id,
-      company_name: co.name,
-      company_website: co.website,
-      company_linkedin_url: co.linkedin_url,
-      company_logo_url: co.logo_url,
-    };
   }
 
   const { error: uErr } = await admin
@@ -324,14 +307,20 @@ export async function adminUpdateProfile(
     .update({
       full_name,
       account_role,
-      ...companyPatch,
     })
     .eq("id", id);
 
   if (uErr) return { error: uErr.message };
 
   if (account_role === "hirer" || account_role === "admin") {
-    await syncRolesFromProfileCompany(admin, id);
+    try {
+      await setProfilePrimaryCompany(admin, id, selectedCompanyId);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Could not update company links." };
+    }
+    await syncHirerDisplayOnRoles(admin, id);
+  } else {
+    await admin.from("profile_companies").delete().eq("profile_id", id);
   }
 
   revalidatePath("/admin");
@@ -444,7 +433,7 @@ export async function adminCreateRole(formData: FormData) {
     const { data: profile, error: pErr } = await admin
       .from("profiles")
       .select(
-        "id, full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url, company_id",
+        "id, full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url",
       )
       .eq("id", hirerId)
       .maybeSingle();
@@ -453,20 +442,19 @@ export async function adminCreateRole(formData: FormData) {
       redirect(`/admin/dashboard?role_error=${encodeURIComponent("Hirer profile not found.")}`);
     }
 
-    let companyRow: {
-      name: string;
-      website: string | null;
-      linkedin_url: string | null;
-      logo_url: string | null;
-    } | null = null;
+    const explicitCo = roleCompanyIdRaw.length > 0 ? roleCompanyIdRaw : null;
+    const primaryId = await getPrimaryCompanyIdForProfile(admin, hirerId);
+    const effectiveCoId = explicitCo ?? primaryId;
 
-    if (profile.company_id) {
-      const { data: co } = await admin
-        .from("companies")
-        .select("name, website, linkedin_url, logo_url")
-        .eq("id", profile.company_id)
-        .maybeSingle();
-      if (co) companyRow = co;
+    if (explicitCo && !(await profileHasCompanyMembership(admin, hirerId, explicitCo))) {
+      redirect(
+        `/admin/dashboard?role_error=${encodeURIComponent("That hiring manager is not linked to the selected company. Add the company to their profile first, or pick another org.")}`,
+      );
+    }
+
+    const companyRow = effectiveCoId ? await fetchCompanySnapshot(admin, effectiveCoId) : null;
+    if (effectiveCoId && !companyRow) {
+      redirect(`/admin/dashboard?role_error=${encodeURIComponent("Invalid company for this role.")}`);
     }
 
     display = {
@@ -477,7 +465,7 @@ export async function adminCreateRole(formData: FormData) {
       company_website: companyRow?.website ?? profile.company_website,
       company_linkedin_url: companyRow?.linkedin_url ?? profile.company_linkedin_url,
       company_logo_url: companyRow?.logo_url ?? profile.company_logo_url,
-      company_id: profile.company_id ?? null,
+      company_id: effectiveCoId,
     };
   } else if (roleCompanyIdRaw.length > 0) {
     const { data: co, error: cErr } = await admin
@@ -573,7 +561,7 @@ export async function adminAssignHirerToRole(
 
   const { data: role, error: rErr } = await admin
     .from("roles")
-    .select("id, hirer_id")
+    .select("id, hirer_id, company_id")
     .eq("id", roleId)
     .maybeSingle();
 
@@ -583,28 +571,20 @@ export async function adminAssignHirerToRole(
   const { data: profile, error: pErr } = await admin
     .from("profiles")
     .select(
-      "id, full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url, company_id",
+      "id, full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url",
     )
     .eq("id", hirerId)
     .maybeSingle();
 
   if (pErr || !profile) return { error: "Hirer profile not found." };
 
-  let companyRow: {
-    name: string;
-    website: string | null;
-    linkedin_url: string | null;
-    logo_url: string | null;
-  } | null = null;
+  const existingRoleCompanyId = role.company_id as string | null;
+  const primaryId = await getPrimaryCompanyIdForProfile(admin, hirerId);
+  const effectiveCompanyId = existingRoleCompanyId ?? primaryId ?? null;
 
-  if (profile.company_id) {
-    const { data: co } = await admin
-      .from("companies")
-      .select("name, website, linkedin_url, logo_url")
-      .eq("id", profile.company_id)
-      .maybeSingle();
-    if (co) companyRow = co;
-  }
+  const companyRow = effectiveCompanyId
+    ? await fetchCompanySnapshot(admin, effectiveCompanyId)
+    : null;
 
   const display = {
     hirer_id: hirerId,
@@ -615,7 +595,7 @@ export async function adminAssignHirerToRole(
     company_website: companyRow?.website ?? profile.company_website,
     company_linkedin_url: companyRow?.linkedin_url ?? profile.company_linkedin_url,
     company_logo_url: companyRow?.logo_url ?? profile.company_logo_url,
-    company_id: profile.company_id ?? null,
+    company_id: effectiveCompanyId,
     status: publish ? "getting_started" : "draft",
   };
 

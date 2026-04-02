@@ -169,7 +169,7 @@ export default async function ConnectorDashboardPage() {
 
   const allSubs = [...applied, ...referredOut, ...referredIn];
   const roleIds = uniqIds(allSubs);
-  let roleMap = new Map<string, RoleRow>();
+  const roleMap = new Map<string, RoleRow>();
 
   if (roleIds.length > 0 && !loadError) {
     try {

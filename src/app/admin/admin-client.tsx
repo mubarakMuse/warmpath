@@ -106,12 +106,13 @@ export function AdminClient({
       </section>
 
       <section>
-        <h2 className="font-serif text-xl font-semibold text-warm-ink">Assign hiring manager to company</h2>
+        <h2 className="font-serif text-xl font-semibold text-warm-ink">Set hiring manager primary company</h2>
         <p className="mt-1 text-sm text-warm-muted">
-          After a hiring manager signs up at{" "}
-          <strong className="font-medium text-warm-ink">/hire/sign-up</strong> (Google or magic link), pick
-          them here and attach a company. Their existing roles get
-          the same company branding.
+          After someone signs up at{" "}
+          <strong className="font-medium text-warm-ink">/hire/sign-up</strong>, link them to an
+          organization. This sets their <strong>primary</strong> company (default for new roles). Each role
+          still has its own <span className="font-mono text-xs">company_id</span>—change a role if they hire
+          for a different org. Saving here does not rewrite company on existing roles.
         </p>
         <form action={coAction} className="mt-6 grid max-w-lg gap-4">
           <label className="flex flex-col gap-1 text-sm">
@@ -204,8 +205,9 @@ export function AdminClient({
               ))}
             </select>
             <span className="text-xs font-normal text-warm-muted">
-              Used when there is no hiring manager yet (public card shows company only after you
-              assign someone and publish).
+              When a hiring manager is selected: optional override for which org this job belongs to (they
+              must already be linked to that company). Leave blank to use their primary company. When no
+              hirer: branding for the draft role only.
             </span>
           </label>
           <label className="flex flex-col gap-1 text-sm">

@@ -10,6 +10,7 @@
 -- For companies + invite/claim + connectors: run migrations/007_companies_claims_connectors.sql.
 -- For optional hirer on roles + public policy: run migrations/008_roles_optional_hirer_public_policy.sql.
 -- For referral → candidate dashboard link: run migrations/009_submissions_candidate_email.sql.
+-- For hirer ↔ companies many-to-many: run migrations/010_profile_companies.sql (drops profiles.company_id).
 -- To wipe app data: run reset_app_data.sql (manual; not auto-applied).
 -- =============================================================================
 

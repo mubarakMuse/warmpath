@@ -43,25 +43,41 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
 
     const companyNameById = new Map(companies.map((c) => [c.id, c.name]));
 
+    const { data: primaryLinks } = await admin
+      .from("profile_companies")
+      .select("profile_id, company_id")
+      .eq("is_primary", true);
+    const primaryCompanyByProfile = new Map(
+      (primaryLinks ?? []).map((l) => [l.profile_id as string, l.company_id as string]),
+    );
+
     const { data: conn } = await admin
       .from("profiles")
-      .select("id, email, full_name, account_role, company_id, created_at, auth_user_id")
+      .select("id, email, full_name, account_role, created_at, auth_user_id")
       .eq("account_role", "connector")
       .order("created_at", { ascending: false });
-    connectors = (conn ?? []).map((r) => ({
-      ...r,
-      company_name: r.company_id ? companyNameById.get(r.company_id) ?? null : null,
-    }));
+    connectors = (conn ?? []).map((r) => {
+      const cid = primaryCompanyByProfile.get(r.id) ?? null;
+      return {
+        ...r,
+        company_id: cid,
+        company_name: cid ? companyNameById.get(cid) ?? null : null,
+      };
+    });
 
     const { data: hi } = await admin
       .from("profiles")
-      .select("id, email, full_name, account_role, company_id, created_at, auth_user_id")
+      .select("id, email, full_name, account_role, created_at, auth_user_id")
       .in("account_role", ["hirer", "admin"])
       .order("created_at", { ascending: false });
-    hirers = (hi ?? []).map((r) => ({
-      ...r,
-      company_name: r.company_id ? companyNameById.get(r.company_id) ?? null : null,
-    }));
+    hirers = (hi ?? []).map((r) => {
+      const cid = primaryCompanyByProfile.get(r.id) ?? null;
+      return {
+        ...r,
+        company_id: cid,
+        company_name: cid ? companyNameById.get(cid) ?? null : null,
+      };
+    });
 
     const { data: ur } = await admin
       .from("roles")

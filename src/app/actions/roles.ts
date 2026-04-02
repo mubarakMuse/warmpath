@@ -6,6 +6,10 @@ import { getAdminSessionProfile } from "@/lib/admin/guard";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeReferralBonusForStorage } from "@/lib/referral-bonus";
 import { makeRoleSlug } from "@/lib/slug";
+import {
+  fetchCompanySnapshot,
+  getPrimaryCompanyIdForProfile,
+} from "@/lib/admin/profile-companies";
 import { getProfileIdFromSession } from "@/lib/session/profile";
 
 export type CreateRoleState = { error?: string };
@@ -43,6 +47,9 @@ export async function createRole(_prev: CreateRoleState, formData: FormData) {
 
   if (pErr || !profile) return { error: pErr?.message ?? "Could not load your profile." };
 
+  const primaryCompanyId = await getPrimaryCompanyIdForProfile(admin, hirerId);
+  const companySnap = primaryCompanyId ? await fetchCompanySnapshot(admin, primaryCompanyId) : null;
+
   let slug = makeRoleSlug(title);
   let roleId: string | null = null;
 
@@ -50,10 +57,11 @@ export async function createRole(_prev: CreateRoleState, formData: FormData) {
     hirer_full_name: profile.full_name,
     hirer_linkedin_url: profile.linkedin_url,
     hirer_avatar_url: profile.avatar_url,
-    company_name: profile.company_name,
-    company_website: profile.company_website,
-    company_linkedin_url: profile.company_linkedin_url,
-    company_logo_url: profile.company_logo_url,
+    company_name: companySnap?.name ?? profile.company_name,
+    company_website: companySnap?.website ?? profile.company_website,
+    company_linkedin_url: companySnap?.linkedin_url ?? profile.company_linkedin_url,
+    company_logo_url: companySnap?.logo_url ?? profile.company_logo_url,
+    company_id: primaryCompanyId,
   };
 
   for (let attempt = 0; attempt < 8; attempt++) {

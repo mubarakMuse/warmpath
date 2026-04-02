@@ -10,6 +10,7 @@ begin;
 
 delete from public.submissions;
 delete from public.roles;
+delete from public.profile_companies;
 delete from public.profiles;
 delete from public.companies;
 delete from public.waitlist;

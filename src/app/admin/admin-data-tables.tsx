@@ -70,8 +70,8 @@ function CompaniesTable({ rows }: { rows: AdminCompanyRow[] }) {
     <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
       <h2 className="font-serif text-xl font-semibold text-warm-ink">Companies</h2>
       <p className="mt-1 text-sm text-warm-muted">
-        View, edit, or delete organizations. Deleting clears company links on profiles and roles (FK set
-        null).
+        View, edit, or delete organizations. Deleting removes hirer–company memberships and clears{" "}
+        <span className="font-mono text-xs">roles.company_id</span> for that org.
       </p>
       <FormFlash state={uState} />
       <FormFlash state={dState} />
@@ -248,7 +248,9 @@ function ProfilesTable({
                     <td className="py-3 pr-4 text-warm-muted">
                       <span className="capitalize">{p.account_role}</span>
                       {p.company_name ? (
-                        <span className="mt-0.5 block text-xs text-stone-500">{p.company_name}</span>
+                        <span className="mt-0.5 block text-xs text-stone-500" title="Primary org link">
+                          {p.company_name}
+                        </span>
                       ) : null}
                     </td>
                     <td className="py-3 pr-4 text-warm-muted">
@@ -312,7 +314,7 @@ function ProfilesTable({
                             <dd>{p.auth_user_id ? "Yes (Google / magic link)" : "No (legacy row without auth)"}</dd>
                           </div>
                           <div>
-                            <dt className="font-semibold text-warm-ink">Company ID</dt>
+                            <dt className="font-semibold text-warm-ink">Primary company ID</dt>
                             <dd className="font-mono">{p.company_id ?? "—"}</dd>
                           </div>
                         </dl>
@@ -388,7 +390,10 @@ function ProfileEditForm({
       </label>
       {showCompany ? (
         <label className="flex flex-col gap-1 text-xs font-medium text-warm-ink">
-          Company
+          Primary company
+          <span className="font-normal text-warm-muted">
+            Default org for new roles; hirers can be linked to more than one company over time.
+          </span>
           <select name="company_id" className={input} defaultValue={profile.company_id ?? ""}>
             <option value="">— None —</option>
             {companies.map((c) => (
