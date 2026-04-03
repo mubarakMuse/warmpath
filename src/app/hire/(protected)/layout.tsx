@@ -42,22 +42,10 @@ export default async function HireProtectedLayout({
               Dashboard
             </Link>
             <Link
-              href="/hire/roles/new"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-warm-muted hover:bg-stone-100 hover:text-warm-ink"
-            >
-              New role
-            </Link>
-            <Link
               href="/hire/settings"
               className="rounded-lg px-3 py-2 text-sm font-medium text-warm-muted hover:bg-stone-100 hover:text-warm-ink"
             >
               Profile
-            </Link>
-            <Link
-              href="/"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-warm-muted hover:bg-stone-100 hover:text-warm-ink"
-            >
-              Home
             </Link>
             <form action={logoutManager} className="inline md:ml-2">
               <button

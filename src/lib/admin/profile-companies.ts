@@ -71,6 +71,30 @@ export async function setProfilePrimaryCompany(
   if (e2) throw new Error(e2.message);
 }
 
+export async function listCompaniesForProfile(
+  admin: SupabaseClient,
+  profileId: string,
+): Promise<{ id: string; name: string; is_primary: boolean }[]> {
+  const { data, error } = await admin
+    .from("profile_companies")
+    .select("is_primary, companies (id, name)")
+    .eq("profile_id", profileId);
+
+  if (error || !data?.length) return [];
+
+  const rows: { id: string; name: string; is_primary: boolean }[] = [];
+  for (const row of data) {
+    const c = row.companies as { id: string; name: string } | { id: string; name: string }[] | null;
+    const co = Array.isArray(c) ? c[0] : c;
+    if (co?.id) rows.push({ id: co.id, name: co.name, is_primary: !!row.is_primary });
+  }
+  rows.sort((a, b) => {
+    if (a.is_primary !== b.is_primary) return a.is_primary ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  return rows;
+}
+
 export async function fetchCompanySnapshot(
   admin: SupabaseClient,
   companyId: string,

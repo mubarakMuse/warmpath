@@ -26,6 +26,7 @@ type RoleRow = {
   title: string;
   slug: string;
   status: string;
+  company_id: string | null;
   company_name: string | null;
 };
 
@@ -176,10 +177,27 @@ export default async function ConnectorDashboardPage() {
       const admin = createAdminClient();
       const { data: roles, error: rErr } = await admin
         .from("roles")
-        .select("id, title, slug, status, company_name")
+        .select("id, title, slug, status, company_id")
         .in("id", roleIds);
       if (rErr) loadError = rErr.message;
-      else (roles as RoleRow[] | null)?.forEach((r) => roleMap.set(r.id, r));
+      else {
+        const rows = (roles ?? []) as Omit<RoleRow, "company_name">[];
+        const cids = [...new Set(rows.map((r) => r.company_id).filter(Boolean))] as string[];
+        const nameById = new Map<string, string>();
+        if (cids.length > 0) {
+          const { data: cos, error: cErr } = await admin.from("companies").select("id, name").in("id", cids);
+          if (cErr) loadError = cErr.message;
+          else (cos as { id: string; name: string }[] | null)?.forEach((c) => nameById.set(c.id, c.name));
+        }
+        if (!loadError) {
+          rows.forEach((r) =>
+            roleMap.set(r.id, {
+              ...r,
+              company_name: r.company_id ? (nameById.get(r.company_id) ?? null) : null,
+            }),
+          );
+        }
+      }
     } catch (e) {
       loadError = e instanceof Error ? e.message : "Could not load roles.";
     }

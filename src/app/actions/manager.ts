@@ -45,7 +45,6 @@ export async function registerManager(
     access_code: accessCode,
     account_role: "hirer",
     auth_user_id: null,
-    claim_status: "active",
   });
 
   if (error) return { error: error.message };

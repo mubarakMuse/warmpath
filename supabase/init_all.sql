@@ -7,10 +7,12 @@
 -- run migrations/004_profile_company_role_display.sql as well.
 -- If your roles still use active/closed only, run migrations/005_role_pipeline_status.sql.
 -- If your column is still match_incentive, run migrations/006_match_bonus_rename.sql.
--- For companies + invite/claim + connectors: run migrations/007_companies_claims_connectors.sql.
+-- For companies + connectors: run migrations/007_companies_claims_connectors.sql (invite/claim columns removed by 012).
 -- For optional hirer on roles + public policy: run migrations/008_roles_optional_hirer_public_policy.sql.
 -- For referral → candidate dashboard link: run migrations/009_submissions_candidate_email.sql.
 -- For hirer ↔ companies many-to-many: run migrations/010_profile_companies.sql (drops profiles.company_id).
+-- For dropping legacy profile org fields: run migrations/011_drop_profile_company_columns.sql (or use profiles DDL above).
+-- For dropping invite/claim + denormalized role display columns: run migrations/012_drop_claim_invite_and_role_denorm.sql.
 -- To wipe app data: run reset_app_data.sql (manual; not auto-applied).
 -- =============================================================================
 
@@ -45,10 +47,6 @@ create table if not exists public.profiles (
   auth_user_id uuid unique references auth.users (id) on delete set null,
   linkedin_url text,
   avatar_url text,
-  company_name text,
-  company_website text,
-  company_linkedin_url text,
-  company_logo_url text,
   created_at timestamptz not null default now()
 );
 
@@ -81,13 +79,6 @@ create table if not exists public.roles (
     ),
   location text,
   match_bonus text,
-  hirer_full_name text,
-  hirer_linkedin_url text,
-  hirer_avatar_url text,
-  company_name text,
-  company_website text,
-  company_linkedin_url text,
-  company_logo_url text,
   created_at timestamptz not null default now()
 );
 

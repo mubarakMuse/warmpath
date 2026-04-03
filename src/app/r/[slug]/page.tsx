@@ -6,11 +6,9 @@ import { GoogleSignInButton } from "@/components/google-sign-in-button";
 import { PublicRoleHero } from "@/components/public-role-hero";
 import { roleAcceptsSubmissions } from "@/lib/role-status";
 import { helpHireHeading } from "@/lib/hirer";
+import { loadPublicRoleBySlug } from "@/lib/public-role";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfileRow } from "@/lib/session/session-profile";
-
-const roleSelect =
-  "id, title, description, slug, status, location, match_bonus, hirer_full_name, hirer_linkedin_url, hirer_avatar_url, company_name, company_website, company_linkedin_url, company_logo_url";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -29,23 +27,27 @@ export default async function PublicRolePage({ params, searchParams }: Props) {
     }
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
     return (
       <div className="mx-auto max-w-lg px-6 py-20 text-center text-sm text-red-800">
-        Supabase is not configured. Add keys to <code className="rounded bg-red-100 px-1">.env.local</code>.
+        Supabase is not configured. Add URL, anon key, and{" "}
+        <code className="rounded bg-red-100 px-1">SUPABASE_SERVICE_ROLE_KEY</code> to{" "}
+        <code className="rounded bg-red-100 px-1">.env.local</code>.
       </div>
     );
   }
 
-  let supabase;
   try {
-    supabase = await createClient();
+    await createClient();
   } catch {
     notFound();
   }
 
-  const { data: role } = await supabase.from("roles").select(roleSelect).eq("slug", slug).maybeSingle();
-
+  const role = await loadPublicRoleBySlug(slug);
   if (!role) notFound();
 
   const accepting = roleAcceptsSubmissions(role.status);

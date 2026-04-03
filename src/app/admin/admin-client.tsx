@@ -6,12 +6,15 @@ import {
   adminAssignProfileToCompany,
   adminCreateCompany,
   adminCreateRole,
+  adminProvisionHirerProfile,
   type AdminFormState,
 } from "@/app/actions/admin";
+import { AdminRolesTable, type AdminRoleRow } from "@/app/admin/admin-roles-table";
 
 const companyInitial: AdminFormState = {};
 const assignCompanyInitial: AdminFormState = {};
 const assignInitial: AdminFormState = {};
+const provisionInitial: AdminFormState = {};
 
 type CompanyRow = { id: string; name: string; slug: string };
 type HirerRow = { id: string; email: string; full_name: string };
@@ -20,11 +23,13 @@ type UnassignedRoleRow = { id: string; title: string; slug: string };
 export function AdminClient({
   companies,
   hirers,
+  rolesForEdit,
   unassignedRoles,
   roleError,
 }: {
   companies: CompanyRow[];
   hirers: HirerRow[];
+  rolesForEdit: AdminRoleRow[];
   unassignedRoles: UnassignedRoleRow[];
   roleError: string | null;
 }) {
@@ -34,9 +39,90 @@ export function AdminClient({
     assignCompanyInitial,
   );
   const [aState, aAction, aPending] = useActionState(adminAssignHirerToRole, assignInitial);
+  const [pState, pAction, pPending] = useActionState(adminProvisionHirerProfile, provisionInitial);
 
   return (
     <div className="space-y-16">
+      <section>
+        <h2 className="font-serif text-xl font-semibold text-warm-ink">Add hiring manager (before signup)</h2>
+        <p className="mt-1 text-sm text-warm-muted">
+          Creates a <strong className="font-medium text-warm-ink">hirer</strong> profile with no login yet. Use
+          the same email when they sign up at <span className="font-mono text-xs">/hire/sign-up</span> (Google or
+          magic link) — their account links automatically. You can assign roles and primary company immediately.
+        </p>
+        <form action={pAction} className="mt-6 grid max-w-lg gap-4">
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-warm-ink">Full name</span>
+            <input
+              name="full_name"
+              required
+              autoComplete="name"
+              className="min-h-11 rounded-lg border border-stone-200 bg-white px-3 outline-none focus:border-warm-accent focus:ring-2 focus:ring-warm-accent/20"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-warm-ink">Work email</span>
+            <input
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              className="min-h-11 rounded-lg border border-stone-200 bg-white px-3 outline-none focus:border-warm-accent focus:ring-2 focus:ring-warm-accent/20"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-warm-ink">LinkedIn profile URL (optional)</span>
+            <input
+              name="linkedin_url"
+              placeholder="https://linkedin.com/in/…"
+              className="min-h-11 rounded-lg border border-stone-200 bg-white px-3 outline-none focus:border-warm-accent focus:ring-2 focus:ring-warm-accent/20"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-warm-ink">Profile photo URL (optional)</span>
+            <input
+              name="avatar_url"
+              type="url"
+              placeholder="https://…"
+              className="min-h-11 rounded-lg border border-stone-200 bg-white px-3 outline-none focus:border-warm-accent focus:ring-2 focus:ring-warm-accent/20"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm">
+            <span className="font-medium text-warm-ink">Primary company (optional)</span>
+            <select
+              name="company_id"
+              className="min-h-11 rounded-lg border border-stone-200 bg-white px-3 outline-none focus:border-warm-accent focus:ring-2 focus:ring-warm-accent/20"
+            >
+              <option value="">— None —</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {pState.error ? (
+            <p className="text-sm text-red-700" role="alert">
+              {pState.error}
+            </p>
+          ) : null}
+          {pState.ok && pState.message ? (
+            <p className="text-sm text-green-800" role="status">
+              {pState.message}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={pPending}
+            className="inline-flex min-h-11 w-fit items-center justify-center rounded-lg bg-warm-accent px-5 text-sm font-semibold text-white hover:bg-warm-accent-hover disabled:opacity-60"
+          >
+            {pPending ? "Creating…" : "Create hiring profile"}
+          </button>
+        </form>
+      </section>
+
+      <AdminRolesTable roles={rolesForEdit} companies={companies} hirers={hirers} />
+
       <section>
         <h2 className="font-serif text-xl font-semibold text-warm-ink">Create company</h2>
         <p className="mt-1 text-sm text-warm-muted">
@@ -108,11 +194,9 @@ export function AdminClient({
       <section>
         <h2 className="font-serif text-xl font-semibold text-warm-ink">Set hiring manager primary company</h2>
         <p className="mt-1 text-sm text-warm-muted">
-          After someone signs up at{" "}
-          <strong className="font-medium text-warm-ink">/hire/sign-up</strong>, link them to an
-          organization. This sets their <strong>primary</strong> company (default for new roles). Each role
-          still has its own <span className="font-mono text-xs">company_id</span>—change a role if they hire
-          for a different org. Saving here does not rewrite company on existing roles.
+          Set or change <strong className="font-medium text-warm-ink">primary</strong> company for any hiring
+          manager (including profiles you added before signup). Default for new roles they create; each role
+          still has its own <span className="font-mono text-xs">company_id</span>.
         </p>
         <form action={coAction} className="mt-6 grid max-w-lg gap-4">
           <label className="flex flex-col gap-1 text-sm">
@@ -167,8 +251,8 @@ export function AdminClient({
       <section>
         <h2 className="font-serif text-xl font-semibold text-warm-ink">Create role</h2>
         <p className="mt-1 text-sm text-warm-muted">
-          Leave hiring manager empty to create a <strong>draft</strong> role first; assign someone
-          after they sign up. If you pick a hirer, you can set status and you’ll jump to their hiring
+          Leave hiring manager empty for a <strong>draft</strong> role, or pick a hirer (including
+          pre-provisioned profiles). If you pick a hirer, you can set status and you’ll jump to their hiring
           view.
         </p>
         {roleError ? (
@@ -269,8 +353,8 @@ export function AdminClient({
         <section>
           <h2 className="font-serif text-xl font-semibold text-warm-ink">Assign hiring manager to role</h2>
           <p className="mt-1 text-sm text-warm-muted">
-            Link a signed-up hiring manager to a draft role. Optionally publish immediately
-            (getting_started).
+            Link a hiring manager (signed up or pre-provisioned) to a draft role. Optionally publish
+            immediately (getting_started).
           </p>
           <form action={aAction} className="mt-6 grid max-w-lg gap-4">
             <label className="flex flex-col gap-1 text-sm">

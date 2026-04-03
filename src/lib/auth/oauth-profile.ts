@@ -70,7 +70,7 @@ export async function ensureProfileForOAuth(
 
   const { data: byEmail, error: byEmailErr } = await admin
     .from("profiles")
-    .select("id, auth_user_id, account_role, claim_status")
+    .select("id, auth_user_id, account_role")
     .eq("email", email)
     .maybeSingle();
 
@@ -86,9 +86,6 @@ export async function ensureProfileForOAuth(
         auth_user_id: authId,
         full_name: fullName,
         ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
-        claim_status: "active",
-        invite_token: null,
-        invite_expires_at: null,
       };
       if (byEmail.account_role === "connector") {
         updates.account_role = "hirer";
@@ -119,7 +116,6 @@ export async function ensureProfileForOAuth(
         full_name: fullName,
         auth_user_id: authId,
         account_role: "connector",
-        claim_status: "active",
         access_code: null,
         ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
       })
@@ -138,7 +134,6 @@ export async function ensureProfileForOAuth(
       full_name: fullName,
       auth_user_id: authId,
       account_role: "hirer",
-      claim_status: "active",
       access_code: null,
       ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
     })

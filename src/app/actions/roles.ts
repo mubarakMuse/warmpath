@@ -7,8 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeReferralBonusForStorage } from "@/lib/referral-bonus";
 import { makeRoleSlug } from "@/lib/slug";
 import {
-  fetchCompanySnapshot,
   getPrimaryCompanyIdForProfile,
+  profileHasCompanyMembership,
 } from "@/lib/admin/profile-companies";
 import { getProfileIdFromSession } from "@/lib/session/profile";
 
@@ -27,6 +27,7 @@ export async function createRole(_prev: CreateRoleState, formData: FormData) {
   const description = String(formData.get("description") ?? "").trim() || null;
   const location = clip(String(formData.get("location") ?? ""), 300) || null;
   const match_bonus = normalizeReferralBonusForStorage(String(formData.get("match_bonus") ?? ""), 500);
+  const companyIdRaw = String(formData.get("company_id") ?? "").trim();
 
   if (title.length < 2) return { error: "Add a role title (at least 2 characters)." };
 
@@ -37,32 +38,21 @@ export async function createRole(_prev: CreateRoleState, formData: FormData) {
     return { error: "Server is not configured (missing Supabase service role key)." };
   }
 
-  const { data: profile, error: pErr } = await admin
-    .from("profiles")
-    .select(
-      "full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url",
-    )
-    .eq("id", hirerId)
-    .single();
+  const { error: pErr } = await admin.from("profiles").select("id").eq("id", hirerId).single();
 
-  if (pErr || !profile) return { error: pErr?.message ?? "Could not load your profile." };
+  if (pErr) return { error: pErr.message ?? "Could not load your profile." };
 
   const primaryCompanyId = await getPrimaryCompanyIdForProfile(admin, hirerId);
-  const companySnap = primaryCompanyId ? await fetchCompanySnapshot(admin, primaryCompanyId) : null;
+  const effectiveCompanyId = companyIdRaw.length > 0 ? companyIdRaw : primaryCompanyId;
+  if (
+    effectiveCompanyId &&
+    !(await profileHasCompanyMembership(admin, hirerId, effectiveCompanyId))
+  ) {
+    return { error: "Choose an organization you’re linked to, or leave the default." };
+  }
 
   let slug = makeRoleSlug(title);
   let roleId: string | null = null;
-
-  const display = {
-    hirer_full_name: profile.full_name,
-    hirer_linkedin_url: profile.linkedin_url,
-    hirer_avatar_url: profile.avatar_url,
-    company_name: companySnap?.name ?? profile.company_name,
-    company_website: companySnap?.website ?? profile.company_website,
-    company_linkedin_url: companySnap?.linkedin_url ?? profile.company_linkedin_url,
-    company_logo_url: companySnap?.logo_url ?? profile.company_logo_url,
-    company_id: primaryCompanyId,
-  };
 
   for (let attempt = 0; attempt < 8; attempt++) {
     const { data, error } = await admin
@@ -75,7 +65,7 @@ export async function createRole(_prev: CreateRoleState, formData: FormData) {
         status: "getting_started",
         location,
         match_bonus,
-        ...display,
+        company_id: effectiveCompanyId,
       })
       .select("id")
       .single();
@@ -105,6 +95,8 @@ export async function updateRole(_prev: UpdateRoleState, formData: FormData): Pr
   const description = String(formData.get("description") ?? "").trim() || null;
   const location = clip(String(formData.get("location") ?? ""), 300) || null;
   const match_bonus = normalizeReferralBonusForStorage(String(formData.get("match_bonus") ?? ""), 500);
+  const companyIdRaw = String(formData.get("company_id") ?? "").trim();
+  const hirerIdRaw = String(formData.get("hirer_id") ?? "").trim();
 
   if (!roleId) return { error: "Missing role." };
   if (title.length < 2) return { error: "Add a role title (at least 2 characters)." };
@@ -119,7 +111,7 @@ export async function updateRole(_prev: UpdateRoleState, formData: FormData): Pr
   const adminSess = await getAdminSessionProfile();
   const { data: row, error: rErr } = await admin
     .from("roles")
-    .select("hirer_id, slug")
+    .select("hirer_id, slug, company_id")
     .eq("id", roleId)
     .maybeSingle();
 
@@ -129,10 +121,58 @@ export async function updateRole(_prev: UpdateRoleState, formData: FormData): Pr
   if (!isAdmin && !isOwner) return { error: "Not authorized." };
   if (!row.hirer_id && !isAdmin) return { error: "Only an admin can edit this draft role." };
 
-  const { error: uErr } = await admin
-    .from("roles")
-    .update({ title, description, location, match_bonus })
-    .eq("id", roleId);
+  let targetHirerId = (row.hirer_id as string | null) ?? null;
+  if (isAdmin && formData.has("hirer_id")) {
+    if (hirerIdRaw.length > 0) {
+      const { data: hp, error: hpErr } = await admin
+        .from("profiles")
+        .select("id, account_role")
+        .eq("id", hirerIdRaw)
+        .maybeSingle();
+      if (hpErr || !hp) return { error: "Hiring manager not found." };
+      if (hp.account_role !== "hirer" && hp.account_role !== "admin") {
+        return { error: "Only hirer or admin accounts can own a role." };
+      }
+      targetHirerId = hirerIdRaw;
+    } else {
+      targetHirerId = null;
+    }
+  }
+
+  const targetCompanyId: string | null = companyIdRaw.length > 0 ? companyIdRaw : null;
+
+  if (!isAdmin) {
+    if (targetCompanyId) {
+      const prevCo = row.company_id as string | null;
+      const unchanged = targetCompanyId === prevCo;
+      const member = await profileHasCompanyMembership(admin, profileId, targetCompanyId);
+      if (!unchanged && !member) {
+        return { error: "You’re not linked to that organization." };
+      }
+    }
+  } else if (targetHirerId && targetCompanyId) {
+    if (!(await profileHasCompanyMembership(admin, targetHirerId, targetCompanyId))) {
+      return {
+        error: "That hiring manager isn’t linked to the selected company. Pick another org or manager.",
+      };
+    }
+  }
+
+  const patch: Record<string, unknown> = {
+    title,
+    description,
+    location,
+    match_bonus,
+    company_id: targetCompanyId,
+  };
+  if (isAdmin) {
+    patch.hirer_id = targetHirerId;
+    if (targetHirerId === null) {
+      patch.status = "draft";
+    }
+  }
+
+  const { error: uErr } = await admin.from("roles").update(patch).eq("id", roleId);
 
   if (uErr) return { error: uErr.message };
 

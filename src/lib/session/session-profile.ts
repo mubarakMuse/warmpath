@@ -6,7 +6,6 @@ export type SessionProfileRow = {
   email: string;
   full_name: string;
   account_role: string;
-  claim_status: string;
   avatar_url: string | null;
 };
 
@@ -24,7 +23,7 @@ export async function getSessionProfileRow(): Promise<SessionProfileRow | null> 
 
   const { data } = await admin
     .from("profiles")
-    .select("id, email, full_name, account_role, claim_status, avatar_url")
+    .select("id, email, full_name, account_role, avatar_url")
     .eq("id", id)
     .maybeSingle();
 

@@ -11,10 +11,6 @@ type Props = {
     email: string;
     linkedin_url: string | null;
     avatar_url: string | null;
-    company_name: string | null;
-    company_website: string | null;
-    company_linkedin_url: string | null;
-    company_logo_url: string | null;
   };
 };
 
@@ -32,7 +28,7 @@ export function HirerSettingsForm({ defaults }: Props) {
           className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
           role="status"
         >
-          Saved. Open role pages now show this info (existing roles updated too).
+          Saved. Your name and links on public role pages are updated for every role you manage.
         </p>
       ) : null}
 
@@ -70,56 +66,6 @@ export function HirerSettingsForm({ defaults }: Props) {
         <span className="text-xs font-normal text-warm-muted">
           LinkedIn image links can expire; re-paste if a photo stops loading.
         </span>
-      </label>
-
-      <div className="border-t border-stone-200 pt-6">
-        <h2 className="text-sm font-semibold text-warm-ink">Company</h2>
-        <p className="mt-1 text-xs text-warm-muted">
-          Shown on every public role page so referrers know who they’re helping hire.
-        </p>
-      </div>
-
-      <label className={label}>
-        Company name
-        <input
-          name="company_name"
-          defaultValue={defaults.company_name ?? ""}
-          placeholder="Acme Inc."
-          className={input}
-        />
-      </label>
-
-      <label className={label}>
-        Company website
-        <input
-          name="company_website"
-          type="url"
-          defaultValue={defaults.company_website ?? ""}
-          placeholder="https://acme.com"
-          className={input}
-        />
-      </label>
-
-      <label className={label}>
-        Company LinkedIn page
-        <input
-          name="company_linkedin_url"
-          type="url"
-          defaultValue={defaults.company_linkedin_url ?? ""}
-          placeholder="https://www.linkedin.com/company/…"
-          className={input}
-        />
-      </label>
-
-      <label className={label}>
-        Company logo image URL (optional)
-        <input
-          name="company_logo_url"
-          type="url"
-          defaultValue={defaults.company_logo_url ?? ""}
-          placeholder="From your company LinkedIn page"
-          className={input}
-        />
       </label>
 
       {state.error ? (

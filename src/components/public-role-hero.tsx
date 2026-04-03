@@ -1,3 +1,4 @@
+import { RoleDescription, RoleDescriptionEmpty } from "@/components/role-description";
 import { roleStatusLabel } from "@/lib/role-status";
 
 type Role = {
@@ -117,15 +118,13 @@ export function PublicRoleHero({ role }: { role: Role }) {
         <h2 className="text-xs font-semibold uppercase tracking-widest text-warm-muted">
           About this role
         </h2>
-        {role.description?.trim() ? (
-          <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-warm-muted">
-            {role.description.trim().split(/\n\n+/).map((para, i) => (
-              <p key={i}>{para}</p>
-            ))}
-          </div>
-        ) : (
-          <p className="mt-4 text-sm italic text-warm-muted">No description provided yet.</p>
-        )}
+        <div className="mt-5 rounded-2xl border border-stone-200/90 bg-gradient-to-b from-white to-stone-50/80 px-5 py-5 shadow-sm sm:px-6 sm:py-6">
+          {role.description?.trim() ? (
+            <RoleDescription text={role.description} variant="public" />
+          ) : (
+            <RoleDescriptionEmpty className="text-[15px] italic text-warm-muted" />
+          )}
+        </div>
 
         {(role.company_website || role.company_linkedin_url) && (
           <div className="mt-8 flex flex-wrap gap-4 border-t border-stone-200 pt-6 text-sm">

@@ -1,4 +1,5 @@
 import { AdminClient } from "@/app/admin/admin-client";
+import { type AdminRoleRow } from "@/app/admin/admin-roles-table";
 import {
   AdminDataTables,
   type AdminCompanyRow,
@@ -32,6 +33,7 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
   let connectors: AdminUserRow[] = [];
   let hirers: AdminUserRow[] = [];
   let unassignedRoles: { id: string; title: string; slug: string }[] = [];
+  let allRoles: AdminRoleRow[] = [];
 
   try {
     const admin = createAdminClient();
@@ -85,6 +87,36 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
       .is("hirer_id", null)
       .order("created_at", { ascending: false });
     unassignedRoles = ur ?? [];
+
+    const { data: rlist } = await admin
+      .from("roles")
+      .select("id, title, slug, status, hirer_id, company_id")
+      .order("created_at", { ascending: false });
+
+    const hirerIds = [
+      ...new Set((rlist ?? []).map((row) => row.hirer_id).filter(Boolean) as string[]),
+    ];
+    const hirerLabelById = new Map<string, string>();
+    if (hirerIds.length > 0) {
+      const { data: hp } = await admin
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", hirerIds);
+      for (const p of hp ?? []) {
+        hirerLabelById.set(p.id as string, `${p.full_name} (${p.email})`);
+      }
+    }
+
+    allRoles = (rlist ?? []).map((row) => ({
+      id: row.id as string,
+      title: row.title as string,
+      slug: row.slug as string,
+      status: row.status as string,
+      hirer_id: (row.hirer_id as string | null) ?? null,
+      hirer_label: row.hirer_id ? hirerLabelById.get(row.hirer_id as string) ?? null : null,
+      company_id: (row.company_id as string | null) ?? null,
+      company_name: row.company_id ? companyNameById.get(row.company_id as string) ?? null : null,
+    }));
   } catch {
     /* env missing */
   }
@@ -115,12 +147,14 @@ export default async function AdminDashboardPage({ searchParams }: Props) {
       <div className="mt-16 border-t border-stone-200 pt-16">
         <h2 className="font-serif text-2xl font-semibold text-warm-ink">Provisioning</h2>
         <p className="mt-2 max-w-2xl text-sm text-warm-muted">
-          Hiring managers sign up at /hire/sign-up; assign them to a company and to draft roles here.
+          Add hiring profiles before signup, create companies and roles, and assign managers. Sign-in uses{" "}
+          <span className="font-mono text-xs">/hire/sign-up</span> with the same email as the profile.
         </p>
         <div className="mt-10">
           <AdminClient
             companies={companiesForClient}
             hirers={hirers.map((h) => ({ id: h.id, email: h.email, full_name: h.full_name }))}
+            rolesForEdit={allRoles}
             unassignedRoles={unassignedRoles}
             roleError={roleError}
           />

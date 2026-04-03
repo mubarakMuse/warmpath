@@ -63,6 +63,82 @@ export async function adminCreateCompany(
   return { error: "Could not create a unique company slug." };
 }
 
+function normalizeOptionalUrl(s: string) {
+  const t = s.trim();
+  if (!t) return null;
+  if (t.startsWith("http://") || t.startsWith("https://")) return t;
+  return `https://${t}`;
+}
+
+function isValidEmail(s: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
+/**
+ * Create a hiring manager profile before they sign up. Same email + /hire/sign-up (Google or magic link)
+ * attaches auth and keeps this row (see ensureProfileForOAuth).
+ */
+export async function adminProvisionHirerProfile(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  if (!(await getAdminSessionProfile())) return { error: "Not authorized." };
+
+  const full_name = clip(String(formData.get("full_name") ?? ""), 200);
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const linkedin_url = normalizeOptionalUrl(String(formData.get("linkedin_url") ?? "")) ?? null;
+  const avatar_url = normalizeOptionalUrl(String(formData.get("avatar_url") ?? "")) ?? null;
+  const companyIdRaw = String(formData.get("company_id") ?? "").trim();
+
+  if (full_name.length < 2) return { error: "Full name is required." };
+  if (!isValidEmail(email)) return { error: "Enter a valid email." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Server is not configured." };
+  }
+
+  const { data: existing } = await admin.from("profiles").select("id").eq("email", email).maybeSingle();
+  if (existing) return { error: "A profile with this email already exists." };
+
+  const { data: inserted, error: insErr } = await admin
+    .from("profiles")
+    .insert({
+      email,
+      full_name,
+      account_role: "hirer",
+      auth_user_id: null,
+      access_code: null,
+      linkedin_url,
+      avatar_url,
+    })
+    .select("id")
+    .single();
+
+  if (insErr) return { error: insErr.message };
+  const profileId = inserted?.id as string | undefined;
+  if (!profileId) return { error: "Could not create profile." };
+
+  if (companyIdRaw) {
+    const { data: co } = await admin.from("companies").select("id").eq("id", companyIdRaw).maybeSingle();
+    if (!co) return { error: "Invalid company." };
+    try {
+      await setProfilePrimaryCompany(admin, profileId, companyIdRaw);
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Could not link company." };
+    }
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/dashboard");
+  return {
+    ok: true,
+    message: `Created profile for ${full_name}. Assign roles now; they should sign up at /hire/sign-up with ${email} to link Google or magic link.`,
+  };
+}
+
 /** After a hiring manager signs up, attach them to a company and refresh company fields on their roles. */
 export async function adminAssignProfileToCompany(
   _prev: AdminFormState,
@@ -118,16 +194,6 @@ export async function adminAssignProfileToCompany(
     return { error: e instanceof Error ? e.message : "Could not update company links." };
   }
 
-  const { error: uErr } = await admin
-    .from("roles")
-    .update({
-      hirer_full_name: profile.full_name,
-      hirer_linkedin_url: profile.linkedin_url,
-      hirer_avatar_url: profile.avatar_url,
-    })
-    .eq("hirer_id", profileId);
-  if (uErr) return { error: uErr.message };
-
   revalidatePath("/admin");
   revalidatePath("/admin/dashboard");
   return {
@@ -136,43 +202,6 @@ export async function adminAssignProfileToCompany(
       ? `Primary company set to ${co.name}. Existing roles keep their own organization until you edit them.`
       : "Company links cleared for this hiring manager.",
   };
-}
-
-async function syncHirerDisplayOnRoles(
-  admin: ReturnType<typeof createAdminClient>,
-  profileId: string,
-) {
-  const { data: profile, error: pErr } = await admin
-    .from("profiles")
-    .select("full_name, linkedin_url, avatar_url")
-    .eq("id", profileId)
-    .maybeSingle();
-  if (pErr || !profile) return;
-  await admin
-    .from("roles")
-    .update({
-      hirer_full_name: profile.full_name,
-      hirer_linkedin_url: profile.linkedin_url,
-      hirer_avatar_url: profile.avatar_url,
-    })
-    .eq("hirer_id", profileId);
-}
-
-async function refreshRolesCompanySnapshotByCompanyId(
-  admin: ReturnType<typeof createAdminClient>,
-  companyId: string,
-) {
-  const co = await fetchCompanySnapshot(admin, companyId);
-  if (!co) return;
-  await admin
-    .from("roles")
-    .update({
-      company_name: co.name,
-      company_website: co.website,
-      company_linkedin_url: co.linkedin_url,
-      company_logo_url: co.logo_url,
-    })
-    .eq("company_id", companyId);
 }
 
 export async function adminUpdateCompany(
@@ -204,7 +233,6 @@ export async function adminUpdateCompany(
       .update({ name, slug, website, linkedin_url, logo_url })
       .eq("id", id);
     if (!error) {
-      await refreshRolesCompanySnapshotByCompanyId(admin, id);
       revalidatePath("/admin");
       revalidatePath("/admin/dashboard");
       return { ok: true, message: "Company updated." };
@@ -318,7 +346,6 @@ export async function adminUpdateProfile(
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Could not update company links." };
     }
-    await syncHirerDisplayOnRoles(admin, id);
   } else {
     await admin.from("profile_companies").delete().eq("profile_id", id);
   }
@@ -380,6 +407,8 @@ function roleStatusSet() {
     "sourcing",
     "screening",
     "interviewing",
+    "offer",
+    "hired",
     "on_hold",
     "closed",
   ]);
@@ -418,25 +447,10 @@ export async function adminCreateRole(formData: FormData) {
     status = "draft";
   }
 
-  let display: {
-    hirer_full_name: string | null;
-    hirer_linkedin_url: string | null;
-    hirer_avatar_url: string | null;
-    company_name: string | null;
-    company_website: string | null;
-    company_linkedin_url: string | null;
-    company_logo_url: string | null;
-    company_id: string | null;
-  };
+  let companyId: string | null = null;
 
   if (hirerId) {
-    const { data: profile, error: pErr } = await admin
-      .from("profiles")
-      .select(
-        "id, full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url",
-      )
-      .eq("id", hirerId)
-      .maybeSingle();
+    const { data: profile, error: pErr } = await admin.from("profiles").select("id").eq("id", hirerId).maybeSingle();
 
     if (pErr || !profile) {
       redirect(`/admin/dashboard?role_error=${encodeURIComponent("Hirer profile not found.")}`);
@@ -457,48 +471,15 @@ export async function adminCreateRole(formData: FormData) {
       redirect(`/admin/dashboard?role_error=${encodeURIComponent("Invalid company for this role.")}`);
     }
 
-    display = {
-      hirer_full_name: profile.full_name,
-      hirer_linkedin_url: profile.linkedin_url,
-      hirer_avatar_url: profile.avatar_url,
-      company_name: companyRow?.name ?? profile.company_name,
-      company_website: companyRow?.website ?? profile.company_website,
-      company_linkedin_url: companyRow?.linkedin_url ?? profile.company_linkedin_url,
-      company_logo_url: companyRow?.logo_url ?? profile.company_logo_url,
-      company_id: effectiveCoId,
-    };
+    companyId = effectiveCoId;
   } else if (roleCompanyIdRaw.length > 0) {
-    const { data: co, error: cErr } = await admin
-      .from("companies")
-      .select("id, name, website, linkedin_url, logo_url")
-      .eq("id", roleCompanyIdRaw)
-      .maybeSingle();
+    const { data: co, error: cErr } = await admin.from("companies").select("id").eq("id", roleCompanyIdRaw).maybeSingle();
 
     if (cErr || !co) {
       redirect(`/admin/dashboard?role_error=${encodeURIComponent("Invalid company for this role.")}`);
     }
 
-    display = {
-      hirer_full_name: null,
-      hirer_linkedin_url: null,
-      hirer_avatar_url: null,
-      company_name: co.name,
-      company_website: co.website,
-      company_linkedin_url: co.linkedin_url,
-      company_logo_url: co.logo_url,
-      company_id: co.id,
-    };
-  } else {
-    display = {
-      hirer_full_name: null,
-      hirer_linkedin_url: null,
-      hirer_avatar_url: null,
-      company_name: null,
-      company_website: null,
-      company_linkedin_url: null,
-      company_logo_url: null,
-      company_id: null,
-    };
+    companyId = co.id as string;
   }
 
   let slug = makeRoleSlug(title);
@@ -515,7 +496,7 @@ export async function adminCreateRole(formData: FormData) {
         status,
         location,
         match_bonus,
-        ...display,
+        company_id: companyId,
       })
       .select("id")
       .single();
@@ -568,13 +549,7 @@ export async function adminAssignHirerToRole(
   if (rErr || !role) return { error: "Role not found." };
   if (role.hirer_id) return { error: "This role already has a hiring manager." };
 
-  const { data: profile, error: pErr } = await admin
-    .from("profiles")
-    .select(
-      "id, full_name, linkedin_url, avatar_url, company_name, company_website, company_linkedin_url, company_logo_url",
-    )
-    .eq("id", hirerId)
-    .maybeSingle();
+  const { data: profile, error: pErr } = await admin.from("profiles").select("id").eq("id", hirerId).maybeSingle();
 
   if (pErr || !profile) return { error: "Hirer profile not found." };
 
@@ -585,21 +560,18 @@ export async function adminAssignHirerToRole(
   const companyRow = effectiveCompanyId
     ? await fetchCompanySnapshot(admin, effectiveCompanyId)
     : null;
+  if (effectiveCompanyId && !companyRow) {
+    return { error: "Invalid company on this role." };
+  }
 
-  const display = {
-    hirer_id: hirerId,
-    hirer_full_name: profile.full_name,
-    hirer_linkedin_url: profile.linkedin_url,
-    hirer_avatar_url: profile.avatar_url,
-    company_name: companyRow?.name ?? profile.company_name,
-    company_website: companyRow?.website ?? profile.company_website,
-    company_linkedin_url: companyRow?.linkedin_url ?? profile.company_linkedin_url,
-    company_logo_url: companyRow?.logo_url ?? profile.company_logo_url,
-    company_id: effectiveCompanyId,
-    status: publish ? "getting_started" : "draft",
-  };
-
-  const { error: upErr } = await admin.from("roles").update(display).eq("id", roleId);
+  const { error: upErr } = await admin
+    .from("roles")
+    .update({
+      hirer_id: hirerId,
+      company_id: effectiveCompanyId,
+      status: publish ? "getting_started" : "draft",
+    })
+    .eq("id", roleId);
 
   if (upErr) return { error: upErr.message };
 
@@ -610,4 +582,120 @@ export async function adminAssignHirerToRole(
     ok: true,
     message: "Hiring manager assigned. They can open this role from their dashboard.",
   };
+}
+
+/** Admin: change hiring manager, company on role, and pipeline status. */
+export async function adminUpdateRoleProvisioning(
+  _prev: AdminFormState,
+  formData: FormData,
+): Promise<AdminFormState> {
+  if (!(await getAdminSessionProfile())) return { error: "Not authorized." };
+
+  const roleId = String(formData.get("role_id") ?? "").trim();
+  const hirerIdRaw = String(formData.get("hirer_id") ?? "").trim();
+  const companyIdRaw = String(formData.get("role_company_id") ?? "").trim();
+  const statusRaw = String(formData.get("status") ?? "").trim();
+
+  if (!roleId) return { error: "Missing role." };
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return { error: "Server is not configured." };
+  }
+
+  const { data: role, error: rErr } = await admin
+    .from("roles")
+    .select("id, slug, hirer_id, company_id")
+    .eq("id", roleId)
+    .maybeSingle();
+
+  if (rErr || !role) return { error: "Role not found." };
+
+  const hirerId = hirerIdRaw.length > 0 ? hirerIdRaw : null;
+  const explicitCompanyId = companyIdRaw.length > 0 ? companyIdRaw : null;
+  const allowed = roleStatusSet();
+  const slug = role.slug as string;
+
+  if (!hirerId) {
+    const snap = explicitCompanyId ? await fetchCompanySnapshot(admin, explicitCompanyId) : null;
+    if (explicitCompanyId && !snap) return { error: "Invalid company." };
+
+    const { error: upErr } = await admin
+      .from("roles")
+      .update({
+        hirer_id: null,
+        company_id: explicitCompanyId,
+        status: "draft",
+      })
+      .eq("id", roleId);
+
+    if (upErr) return { error: upErr.message };
+
+    revalidatePath("/admin");
+    revalidatePath("/admin/dashboard");
+    revalidatePath(`/hire/roles/${roleId}`);
+    revalidatePath(`/r/${slug}`);
+    return {
+      ok: true,
+      message: "Role is now unassigned (draft). Set a hiring manager when ready.",
+    };
+  }
+
+  const { data: profile, error: pErr } = await admin
+    .from("profiles")
+    .select("id, account_role")
+    .eq("id", hirerId)
+    .maybeSingle();
+
+  if (pErr || !profile) return { error: "Hiring manager profile not found." };
+  if (profile.account_role !== "hirer" && profile.account_role !== "admin") {
+    return { error: "Only hirer or admin accounts can own a role." };
+  }
+
+  const primaryId = await getPrimaryCompanyIdForProfile(admin, hirerId);
+  const existingRoleCompanyId = role.company_id as string | null;
+
+  let effectiveCoId: string | null;
+  if (explicitCompanyId) {
+    effectiveCoId = explicitCompanyId;
+  } else if (
+    existingRoleCompanyId &&
+    (await profileHasCompanyMembership(admin, hirerId, existingRoleCompanyId))
+  ) {
+    effectiveCoId = existingRoleCompanyId;
+  } else {
+    effectiveCoId = primaryId ?? null;
+  }
+
+  if (explicitCompanyId && !(await profileHasCompanyMembership(admin, hirerId, explicitCompanyId))) {
+    return {
+      error:
+        "That hiring manager is not linked to the selected company. Add the company on their profile first, or choose another org.",
+    };
+  }
+
+  const companyRow = effectiveCoId ? await fetchCompanySnapshot(admin, effectiveCoId) : null;
+  if (effectiveCoId && !companyRow) return { error: "Invalid company." };
+
+  const status = allowed.has(statusRaw) ? statusRaw : "getting_started";
+
+  const { error: upErr } = await admin
+    .from("roles")
+    .update({
+      hirer_id: hirerId,
+      company_id: effectiveCoId,
+      status,
+    })
+    .eq("id", roleId);
+
+  if (upErr) return { error: upErr.message };
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/dashboard");
+  revalidatePath(`/hire/roles/${roleId}`);
+  revalidatePath(`/r/${slug}`);
+  revalidatePath("/hire/dashboard");
+  return { ok: true, message: "Role updated." };
 }

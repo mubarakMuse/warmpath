@@ -247,6 +247,11 @@ function ProfilesTable({
                     </td>
                     <td className="py-3 pr-4 text-warm-muted">
                       <span className="capitalize">{p.account_role}</span>
+                      {mode === "hirer" && !p.auth_user_id ? (
+                        <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-950">
+                          Pending signup
+                        </span>
+                      ) : null}
                       {p.company_name ? (
                         <span className="mt-0.5 block text-xs text-stone-500" title="Primary org link">
                           {p.company_name}
