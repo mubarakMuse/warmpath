@@ -1,9 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * Service-role client — use only in Server Actions / Route Handlers / Server Components
- * after you have verified permissions (e.g. manager session).
- */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;

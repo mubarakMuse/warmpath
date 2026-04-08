@@ -1,23 +1,18 @@
-import { customAlphabet } from "nanoid";
-
-const suffix = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 8);
-
-export function slugifyTitle(title: string) {
-  const base = title
+export function slugify(input: string) {
+  return input
     .trim()
     .toLowerCase()
+    .replace(/['']/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 48);
-  return base || "role";
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "company";
+
+}
+
+export function makeCompanySlug(name: string) {
+  return slugify(name);
 }
 
 export function makeRoleSlug(title: string) {
-  return `${slugifyTitle(title)}-${suffix()}`;
-}
-
-/** URL-safe company slug (no random suffix; must be unique in DB). */
-export function makeCompanySlug(name: string) {
-  const base = slugifyTitle(name);
-  return base || "company";
+  return slugify(title);
 }

@@ -8,12 +8,11 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-warm-canvas: #faf8f5;
   --color-warm-ink: #1c1917;
   --color-warm-muted: #57534e;
-  --color-warm-accent: #c2410c;
-  --color-warm-accent-hover: #9a3412;
-  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --color-warm-accent: #b45309;
+  --color-warm-accent-hover: #92400e;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-lora), ui-serif, Georgia, serif;
 }
 

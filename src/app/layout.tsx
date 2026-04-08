@@ -1,24 +1,28 @@
 import type { Metadata } from "next";
-import { Lora, Plus_Jakarta_Sans } from "next/font/google";
+import { DM_Sans, Lora } from "next/font/google";
+import { Providers } from "@/app/components/providers";
 import "./globals.css";
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 const lora = Lora({
   variable: "--font-lora",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: "Warmpath | Hire through warm intros",
+  title: "Warmpath — Human recruiting in an AI world",
   description:
-    "Publish a role, share one link, and collect structured applications and referrals—optional match bonus, simple pipeline, no ATS required.",
+    "Put people back at the center of hiring. A calmer way to recruit when the world is full of AI noise.",
+  icons: {
+    icon: [{ url: "/warmpath-mark.svg", type: "image/svg+xml" }],
+    apple: "/warmpath-mark.svg",
+  },
 };
 
 export default function RootLayout({
@@ -27,12 +31,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${plusJakarta.variable} ${lora.variable} h-full scroll-smooth antialiased`}
-    >
-      <body className="min-h-full flex flex-col bg-warm-canvas text-warm-ink">
-        {children}
+    <html lang="en" className={`${dmSans.variable} ${lora.variable}`}>
+      <body className="min-h-dvh font-sans antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

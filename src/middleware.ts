@@ -1,56 +1,74 @@
-import { createServerClient } from "@supabase/ssr";
+import { jwtVerify } from "jose";
 import { NextResponse, type NextRequest } from "next/server";
+import { getWarmpathJwtSecretBytes } from "@/lib/jwt-secret";
+import { WP_ADMIN_COOKIE } from "@/lib/session/admin-session";
+import { WP_COMPANY_COOKIE } from "@/lib/session/company-session";
+import { WP_CONNECTOR_COOKIE } from "@/lib/session/connector-session";
 
 export async function middleware(request: NextRequest) {
-  const pathname = request.nextUrl.pathname;
-  const sp = request.nextUrl.searchParams;
-  /**
-   * OAuth must hit `/auth/callback` (exchange code + set session). If Supabase Redirect URLs or Site URL
-   * are wrong, the `code` can land on `/` or `/login` instead — forward and keep query params.
-   */
-  if ((pathname === "/" || pathname === "/login") && sp.has("code")) {
-    const dest = request.nextUrl.clone();
-    dest.pathname = "/auth/callback";
-    return NextResponse.redirect(dest);
+  const { pathname } = request.nextUrl;
+  const secret = getWarmpathJwtSecretBytes();
+
+  if (pathname.startsWith("/admin") && pathname !== "/admin/login") {
+    if (!secret) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    const token = request.cookies.get(WP_ADMIN_COOKIE)?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.typ !== "wp_admin") throw new Error("no");
+    } catch {
+      return NextResponse.redirect(new URL("/admin/login", request.url));
+    }
   }
 
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    return supabaseResponse;
+  if (pathname.startsWith("/company/dashboard")) {
+    if (!secret) {
+      return NextResponse.redirect(new URL("/company/login", request.url));
+    }
+    const token = request.cookies.get(WP_COMPANY_COOKIE)?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/company/login", request.url));
+    }
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.typ !== "wp_co" || !payload.sub) throw new Error("no");
+    } catch {
+      return NextResponse.redirect(new URL("/company/login", request.url));
+    }
   }
 
-  const supabase = createServerClient(url, key, {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({
-          request,
-        });
-        cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
-        );
-      },
-    },
-  });
+  if (pathname.startsWith("/connect/dashboard") || pathname.startsWith("/connect/roles")) {
+    if (!secret) {
+      return NextResponse.redirect(new URL("/connect/login", request.url));
+    }
+    const token = request.cookies.get(WP_CONNECTOR_COOKIE)?.value;
+    if (!token) {
+      return NextResponse.redirect(new URL("/connect/login", request.url));
+    }
+    try {
+      const { payload } = await jwtVerify(token, secret);
+      if (payload.typ !== "wp_conn" || !payload.sub) throw new Error("no");
+    } catch {
+      return NextResponse.redirect(new URL("/connect/login", request.url));
+    }
+  }
 
-  await supabase.auth.getUser();
-
-  return supabaseResponse;
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except static files and images.
-     */
-    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|opengraph-image|twitter-image|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/admin",
+    "/admin/:path*",
+    "/company/dashboard",
+    "/company/dashboard/:path*",
+    "/connect/dashboard",
+    "/connect/dashboard/:path*",
+    "/connect/roles",
+    "/connect/roles/:path*",
   ],
 };
