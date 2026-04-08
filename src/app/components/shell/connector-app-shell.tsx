@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ConnectorProfileModal } from "@/app/connect/connector-profile-modal";
 import type { ConnectorMe } from "@/app/connect/types";
 import { connectorLogout } from "@/app/actions/connect";
-import { ensureHttpsUrl } from "@/lib/ensure-https-url";
 import { PortalNavLink } from "@/app/components/shell/portal-nav-link";
 
 export function ConnectorAppShell({ me, children }: { me: ConnectorMe; children: React.ReactNode }) {
@@ -35,16 +34,6 @@ export function ConnectorAppShell({ me, children }: { me: ConnectorMe; children:
               </PortalNavLink>
             </nav>
             <span className="mx-1 hidden h-5 w-px bg-stone-200 sm:inline-block" aria-hidden />
-            {ensureHttpsUrl(me.linkedin_url) ? (
-              <a
-                href={ensureHttpsUrl(me.linkedin_url)!}
-                className="rounded-md px-3 py-2 text-sm font-medium text-amber-900 hover:bg-amber-50"
-                target="_blank"
-                rel="noreferrer"
-              >
-                LinkedIn
-              </a>
-            ) : null}
             <ConnectorProfileModal me={me} />
             <Link
               href="/"

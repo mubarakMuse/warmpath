@@ -57,13 +57,22 @@ export type WaitlistRow = {
 };
 
 const input =
-  "min-h-10 w-full rounded-md border border-stone-200 bg-white px-3 py-2 font-sans text-sm outline-none focus:border-amber-700 focus:ring-1 focus:ring-amber-700/30";
+  "min-h-10 w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-700 focus:ring-2 focus:ring-amber-700/20";
 
-const btnCode =
-  "inline-flex items-center rounded-md border border-stone-400 bg-stone-100 px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wide text-stone-800 shadow-sm transition hover:bg-stone-200 hover:border-stone-500 disabled:cursor-not-allowed disabled:opacity-45";
+const btnPrimary =
+  "inline-flex items-center justify-center rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-900 disabled:cursor-not-allowed disabled:opacity-45";
 
-const btnCodeGhost =
-  "inline-flex items-center rounded-md border border-dashed border-stone-400 bg-transparent px-2.5 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wide text-stone-700 transition hover:bg-stone-100 disabled:opacity-45";
+const btnSecondary =
+  "inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45";
+
+const btnGhost =
+  "inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium text-stone-500 transition hover:bg-stone-100 hover:text-stone-800";
+
+const card = "rounded-xl border border-stone-200/90 bg-white p-6 shadow-sm";
+
+const panelHighlight = "rounded-xl border border-amber-200/80 bg-amber-50/50 p-6";
+
+const panelMuted = "rounded-xl border border-stone-200 bg-stone-50/90 p-6";
 
 function findRole(companies: CompanyRow[], roleId: string): RoleRow | null {
   for (const c of companies) {
@@ -223,36 +232,32 @@ export function AdminDashboard({
   return (
     <div className="mx-auto max-w-4xl space-y-8">
       <div className="flex flex-wrap gap-2">
-        <Link href="/company/login" className={btnCodeGhost}>
+        <Link href="/company/login" className={btnSecondary}>
           Company portal
         </Link>
-        <Link href="/connect/login" className={btnCodeGhost}>
+        <Link href="/connect/login" className={btnSecondary}>
           Connector portal
         </Link>
       </div>
 
-      <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm ring-1 ring-stone-100">
+      <section className={card}>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-mono text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-            waitlist
-          </h2>
-          <span className="text-xs text-stone-400">{waitlist.length} entries</span>
+          <h2 className="text-sm font-semibold text-stone-900">Waitlist</h2>
+          <span className="text-xs text-stone-500">{waitlist.length} entries</span>
         </div>
-        <p className="mt-1 font-mono text-[10px] text-stone-400">Landing signups · newest first</p>
-        <ul className="mt-4 max-h-80 space-y-2 overflow-y-auto text-xs">
+        <p className="mt-1 text-xs text-stone-500">Landing signups · newest first</p>
+        <ul className="mt-4 max-h-80 space-y-2 overflow-y-auto text-sm">
           {waitlist.length === 0 ? (
             <li className="text-stone-500">No entries yet.</li>
           ) : (
             waitlist.map((w) => (
-              <li key={w.id} className="rounded-md border border-stone-100 bg-stone-50/80 px-3 py-2">
+              <li key={w.id} className="rounded-lg border border-stone-100 bg-stone-50/80 px-3 py-2.5">
                 <div className="flex flex-wrap items-center justify-between gap-1 font-medium text-stone-800">
                   <span>{w.company_name || "—"}</span>
-                  <span className="font-mono text-[10px] font-normal uppercase tracking-wide text-stone-500">
-                    {w.kind}
-                  </span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500">{w.kind}</span>
                 </div>
-                {w.email ? <p className="mt-1 font-mono text-[11px] text-stone-600">{w.email}</p> : null}
-                <p className="mt-1 text-[10px] text-stone-400">
+                {w.email ? <p className="mt-1 text-xs text-stone-600">{w.email}</p> : null}
+                <p className="mt-1 text-xs text-stone-400">
                   {new Date(w.created_at).toLocaleString(undefined, {
                     dateStyle: "medium",
                     timeStyle: "short",
@@ -264,50 +269,50 @@ export function AdminDashboard({
         </ul>
       </section>
 
-      <div className="flex flex-wrap gap-2 border-b border-stone-200 pb-4">
-        <button type="button" onClick={openCreateCompany} className={btnCode}>
-          {showNewCompany ? "close_create_company" : "create_company"}
+      <div className="flex flex-wrap gap-2 border-b border-stone-200 pb-6">
+        <button type="button" onClick={openCreateCompany} className={btnSecondary}>
+          {showNewCompany ? "Cancel" : "Create company"}
         </button>
-        <button type="button" onClick={openCreateRole} className={btnCode} disabled={companies.length === 0}>
-          {showNewRole ? "close_create_role" : "create_role"}
+        <button type="button" onClick={openCreateRole} className={btnSecondary} disabled={companies.length === 0}>
+          {showNewRole ? "Cancel" : "Create role"}
         </button>
-        <button type="button" onClick={openCreateConnector} className={btnCode}>
-          {showNewConnector ? "close_create_connector" : "create_connector"}
+        <button type="button" onClick={openCreateConnector} className={btnSecondary}>
+          {showNewConnector ? "Cancel" : "Create connector"}
         </button>
       </div>
 
       {editingCompany ? (
-        <section className="rounded-lg border border-amber-200/80 bg-amber-50/40 p-5 font-mono text-xs">
-          <div className="mb-3 flex items-center justify-between text-stone-600">
-            <span className="text-[10px] uppercase tracking-wider">edit_company · {editingCompany.slug}</span>
-            <button type="button" onClick={() => setEditCompanyId(null)} className={btnCodeGhost}>
-              dismiss
+        <section className={panelHighlight}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-stone-900">Edit company · {editingCompany.slug}</span>
+            <button type="button" onClick={() => setEditCompanyId(null)} className={btnGhost}>
+              Dismiss
             </button>
           </div>
-          <form key={editingCompany.id} action={ucAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <form key={editingCompany.id} action={ucAction} className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="id" value={editingCompany.id} />
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">name</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Name
               <input name="name" required defaultValue={editingCompany.name} className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">slug</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Slug
               <input name="slug" required defaultValue={editingCompany.slug} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">website</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Website
               <input name="website" type="url" defaultValue={editingCompany.website ?? ""} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">linkedin_url</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              LinkedIn URL
               <input name="linkedin_url" defaultValue={editingCompany.linkedin_url ?? ""} className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">logo_url</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Logo URL
               <input name="logo_url" type="url" defaultValue={editingCompany.logo_url ?? ""} className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">description</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Description
               <textarea
                 name="description"
                 rows={2}
@@ -316,8 +321,8 @@ export function AdminDashboard({
               />
             </label>
             <div className="sm:col-span-2">
-              <button type="submit" disabled={ucPending} className={btnCode}>
-                {ucPending ? "saving…" : "save_company"}
+              <button type="submit" disabled={ucPending} className={btnPrimary}>
+                {ucPending ? "Saving…" : "Save company"}
               </button>
             </div>
           </form>
@@ -325,25 +330,25 @@ export function AdminDashboard({
       ) : null}
 
       {editingRole ? (
-        <section className="rounded-lg border border-amber-200/80 bg-amber-50/40 p-5 font-mono text-xs">
-          <div className="mb-3 flex items-center justify-between text-stone-600">
-            <span className="text-[10px] uppercase tracking-wider">edit_role · {editingRole.slug}</span>
-            <button type="button" onClick={() => setEditRoleId(null)} className={btnCodeGhost}>
-              dismiss
+        <section className={panelHighlight}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-stone-900">Edit role · {editingRole.slug}</span>
+            <button type="button" onClick={() => setEditRoleId(null)} className={btnGhost}>
+              Dismiss
             </button>
           </div>
-          <form key={editingRole.id} action={urAction} className="mt-3 grid gap-3">
+          <form key={editingRole.id} action={urAction} className="grid gap-3">
             <input type="hidden" name="role_id" value={editingRole.id} />
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">title</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Title
               <input name="title" required defaultValue={editingRole.title} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">slug</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Slug
               <input name="slug" required defaultValue={editingRole.slug} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">description</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Description
               <textarea
                 name="description"
                 rows={3}
@@ -351,71 +356,71 @@ export function AdminDashboard({
                 className={input}
               />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">location</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Location
               <input name="location" defaultValue={editingRole.location ?? ""} className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">referral_bonus</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Referral bonus
               <textarea
                 name="referral_bonus"
                 rows={2}
                 defaultValue={editingRole.referral_bonus ?? ""}
                 className={input}
-                placeholder="Internal: shown to connectors & company only, not on public /r/…"
+                placeholder="Connectors and company only — not on public job page"
               />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">status</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Status
               <select name="status" className={input} defaultValue={editingRole.status}>
-                <option value="draft">draft</option>
-                <option value="active">active</option>
-                <option value="closed">closed</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
               </select>
             </label>
-            <button type="submit" disabled={urPending} className={btnCode}>
-              {urPending ? "saving…" : "save_role"}
+            <button type="submit" disabled={urPending} className={btnPrimary}>
+              {urPending ? "Saving…" : "Save role"}
             </button>
           </form>
         </section>
       ) : null}
 
       {showNewCompany ? (
-        <section className="rounded-lg border border-stone-300 bg-stone-50/80 p-5 font-mono text-xs">
-          <div className="mb-3 flex items-center justify-between text-stone-600">
-            <span className="text-[10px] uppercase tracking-wider">new_company</span>
-            <button type="button" onClick={() => setShowNewCompany(false)} className={btnCodeGhost}>
-              dismiss
+        <section className={panelMuted}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-stone-900">New company</span>
+            <button type="button" onClick={() => setShowNewCompany(false)} className={btnGhost}>
+              Dismiss
             </button>
           </div>
-          <form action={cAction} className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">name</span>
+          <form action={cAction} className="grid gap-3 sm:grid-cols-2">
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Name
               <input name="name" required className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">slug</span>
-              <input name="slug" className={input} placeholder="auto from name" />
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Slug
+              <input name="slug" className={input} placeholder="Auto from name if empty" />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">website</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Website
               <input name="website" type="url" className={input} placeholder="https://" />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">linkedin_url</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              LinkedIn URL
               <input name="linkedin_url" className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">logo_url</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Logo URL
               <input name="logo_url" type="url" className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">description</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Description
               <textarea name="description" rows={2} className={input} />
             </label>
             <div className="sm:col-span-2">
-              <button type="submit" disabled={cPending} className={btnCode}>
-                {cPending ? "submitting…" : "submit_create"}
+              <button type="submit" disabled={cPending} className={btnPrimary}>
+                {cPending ? "Creating…" : "Create company"}
               </button>
             </div>
           </form>
@@ -423,37 +428,37 @@ export function AdminDashboard({
       ) : null}
 
       {showNewConnector ? (
-        <section className="rounded-lg border border-stone-300 bg-stone-50/80 p-5 font-mono text-xs">
-          <div className="mb-3 flex items-center justify-between text-stone-600">
-            <span className="text-[10px] uppercase tracking-wider">new_connector</span>
-            <button type="button" onClick={() => setShowNewConnector(false)} className={btnCodeGhost}>
-              dismiss
+        <section className={panelMuted}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-stone-900">New connector</span>
+            <button type="button" onClick={() => setShowNewConnector(false)} className={btnGhost}>
+              Dismiss
             </button>
           </div>
-          <p className="text-[11px] text-stone-500">
-            Creates a person who can sign in at /connect/login and refer candidates to active roles. Access code is
-            shown after submit — copy it for them.
+          <p className="text-sm text-stone-600">
+            They sign in at <span className="font-mono text-xs">/connect/login</span> with the access code shown after
+            you create them — copy it for them.
           </p>
-          <form action={cnAction} className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">full_name</span>
+          <form action={cnAction} className="mt-4 grid gap-3 sm:grid-cols-2">
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Full name
               <input name="full_name" required className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">role_title</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Role / title
               <input name="role_title" className={input} placeholder="e.g. Engineering Manager" />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">email</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Email
               <input name="email" type="email" className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">linkedin_url</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              LinkedIn URL
               <input name="linkedin_url" className={input} placeholder="https://linkedin.com/in/…" />
             </label>
             <div className="sm:col-span-2">
-              <button type="submit" disabled={cnPending} className={btnCode}>
-                {cnPending ? "submitting…" : "submit_create"}
+              <button type="submit" disabled={cnPending} className={btnPrimary}>
+                {cnPending ? "Creating…" : "Create connector"}
               </button>
             </div>
           </form>
@@ -461,18 +466,18 @@ export function AdminDashboard({
       ) : null}
 
       {showNewRole ? (
-        <section className="rounded-lg border border-stone-300 bg-stone-50/80 p-5 font-mono text-xs">
-          <div className="mb-3 flex items-center justify-between text-stone-600">
-            <span className="text-[10px] uppercase tracking-wider">new_role</span>
-            <button type="button" onClick={() => setShowNewRole(false)} className={btnCodeGhost}>
-              dismiss
+        <section className={panelMuted}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-stone-900">New role</span>
+            <button type="button" onClick={() => setShowNewRole(false)} className={btnGhost}>
+              Dismiss
             </button>
           </div>
-          <form action={rAction} className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">company_id</span>
+          <form action={rAction} className="grid gap-3 sm:grid-cols-2">
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Company
               <select name="company_id" required className={input}>
-                <option value="">—</option>
+                <option value="">Select…</option>
                 {companies.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -480,38 +485,38 @@ export function AdminDashboard({
                 ))}
               </select>
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">title</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Title
               <input name="title" required className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">description</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Description
               <textarea name="description" rows={3} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">location</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Location
               <input name="location" className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">referral_bonus</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Referral bonus
               <textarea
                 name="referral_bonus"
                 rows={2}
                 className={input}
-                placeholder="Internal only (connectors / company / admin)"
+                placeholder="Internal only — connectors, company, admin"
               />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">status</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Status
               <select name="status" className={input} defaultValue="draft">
-                <option value="draft">draft</option>
-                <option value="active">active</option>
-                <option value="closed">closed</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
               </select>
             </label>
             <div className="sm:col-span-2">
-              <button type="submit" disabled={rPending} className={btnCode}>
-                {rPending ? "submitting…" : "submit_create"}
+              <button type="submit" disabled={rPending} className={btnPrimary}>
+                {rPending ? "Creating…" : "Create role"}
               </button>
             </div>
           </form>
@@ -519,48 +524,45 @@ export function AdminDashboard({
       ) : null}
 
       <section>
-        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-          companies
-        </h2>
-        <ul className="mt-3 space-y-4">
+        <h2 className="text-sm font-semibold text-stone-900">Companies</h2>
+        <p className="mt-1 text-xs text-stone-500">Access codes are used on the company portal login.</p>
+        <ul className="mt-4 space-y-4">
           {companies.length === 0 ? (
-            <li className="font-mono text-xs text-stone-500">{"// no rows"}</li>
+            <li className="text-sm text-stone-500">No companies yet — create one above.</li>
           ) : (
             companies.map((c) => (
-              <li
-                key={c.id}
-                className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm ring-1 ring-stone-100"
-              >
+              <li key={c.id} className={card}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-stone-900">{c.name}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-stone-500">{c.slug}</p>
-                    <p className="mt-1 font-mono text-[11px] text-stone-600">
-                      access_code: <span className="font-semibold text-stone-900">{c.access_code}</span>
+                    <p className="mt-0.5 font-mono text-xs text-stone-500">{c.slug}</p>
+                    <p className="mt-2 text-xs text-stone-600">
+                      Access code{" "}
+                      <span className="font-mono font-semibold text-stone-900">{c.access_code}</span>
                     </p>
                   </div>
-                  <button type="button" onClick={() => startEditCompany(c.id)} className={btnCode}>
-                    {editCompanyId === c.id ? "close_edit" : "edit_company"}
+                  <button type="button" onClick={() => startEditCompany(c.id)} className={btnSecondary}>
+                    {editCompanyId === c.id ? "Close" : "Edit company"}
                   </button>
                 </div>
 
-                <ul className="mt-4 space-y-2 border-t border-stone-100 pt-3">
+                <ul className="mt-4 space-y-2 border-t border-stone-100 pt-4">
                   {(c.roles ?? []).length === 0 ? (
-                    <li className="font-mono text-[11px] text-stone-400">{"// no roles"}</li>
+                    <li className="text-xs text-stone-500">No roles for this company.</li>
                   ) : (
                     (c.roles ?? []).map((r) => (
                       <li
                         key={r.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-stone-50/90 px-3 py-2"
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-stone-100 bg-stone-50/80 px-3 py-2.5"
                       >
                         <div className="min-w-0">
                           <span className="text-sm font-medium text-stone-800">{r.title}</span>
-                          <span className="ml-2 font-mono text-[10px] text-stone-500">
+                          <span className="ml-2 text-xs capitalize text-stone-500">
                             {r.status} · {r.slug}
                           </span>
                         </div>
-                        <button type="button" onClick={() => startEditRole(r.id)} className={btnCode}>
-                          {editRoleId === r.id ? "close_edit" : "edit_role"}
+                        <button type="button" onClick={() => startEditRole(r.id)} className={btnSecondary}>
+                          {editRoleId === r.id ? "Close" : "Edit role"}
                         </button>
                       </li>
                     ))
@@ -573,41 +575,39 @@ export function AdminDashboard({
       </section>
 
       {editingConnector ? (
-        <section className="rounded-lg border border-amber-200/80 bg-amber-50/40 p-5 font-mono text-xs">
-          <div className="mb-3 flex items-center justify-between text-stone-600">
-            <span className="text-[10px] uppercase tracking-wider">
-              edit_connector · {editingConnector.full_name}
-            </span>
-            <button type="button" onClick={() => setEditConnectorId(null)} className={btnCodeGhost}>
-              dismiss
+        <section className={panelHighlight}>
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-stone-900">Edit connector · {editingConnector.full_name}</span>
+            <button type="button" onClick={() => setEditConnectorId(null)} className={btnGhost}>
+              Dismiss
             </button>
           </div>
-          <form key={editingConnector.id} action={ucnAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <form key={editingConnector.id} action={ucnAction} className="grid gap-3 sm:grid-cols-2">
             <input type="hidden" name="id" value={editingConnector.id} />
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">full_name</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Full name
               <input name="full_name" required defaultValue={editingConnector.full_name} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">role_title</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Role / title
               <input name="role_title" defaultValue={editingConnector.role_title ?? ""} className={input} />
             </label>
-            <label className="flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">email</span>
+            <label className="flex flex-col gap-1 text-xs font-medium text-stone-700">
+              Email
               <input name="email" type="email" defaultValue={editingConnector.email ?? ""} className={input} />
             </label>
-            <label className="sm:col-span-2 flex flex-col gap-1 text-stone-700">
-              <span className="text-[10px] uppercase text-stone-500">linkedin_url</span>
+            <label className="sm:col-span-2 flex flex-col gap-1 text-xs font-medium text-stone-700">
+              LinkedIn URL
               <input name="linkedin_url" defaultValue={editingConnector.linkedin_url ?? ""} className={input} />
             </label>
-            <p className="sm:col-span-2 text-[10px] text-stone-500">
-              access_code:{" "}
-              <span className="font-semibold text-stone-800">{editingConnector.access_code}</span> — create a new
-              connector to rotate codes
+            <p className="sm:col-span-2 text-xs text-stone-500">
+              Access code{" "}
+              <span className="font-mono font-semibold text-stone-800">{editingConnector.access_code}</span> — create a
+              new connector to rotate codes.
             </p>
             <div className="sm:col-span-2">
-              <button type="submit" disabled={ucnPending} className={btnCode}>
-                {ucnPending ? "saving…" : "save_connector"}
+              <button type="submit" disabled={ucnPending} className={btnPrimary}>
+                {ucnPending ? "Saving…" : "Save connector"}
               </button>
             </div>
           </form>
@@ -615,44 +615,40 @@ export function AdminDashboard({
       ) : null}
 
       <section>
-        <h2 className="font-mono text-[11px] font-semibold uppercase tracking-wider text-stone-500">
-          connectors
-        </h2>
-        <p className="mt-1 font-mono text-[10px] text-stone-400">
-          Referrers use /connect/login with access_code below.
+        <h2 className="text-sm font-semibold text-stone-900">Connectors</h2>
+        <p className="mt-1 text-xs text-stone-500">
+          Sign-in at <span className="font-mono">/connect/login</span> with the access code below.
         </p>
-        <ul className="mt-3 space-y-3">
+        <ul className="mt-4 space-y-4">
           {connectors.length === 0 ? (
-            <li className="font-mono text-xs text-stone-500">{"// none — create_connector or run migration 003"}</li>
+            <li className="text-sm text-stone-500">No connectors — create one above or run migration 003.</li>
           ) : (
             connectors.map((x) => (
-              <li
-                key={x.id}
-                className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm ring-1 ring-stone-100"
-              >
+              <li key={x.id} className={card}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-stone-900">{x.full_name}</p>
                     {x.role_title ? <p className="mt-0.5 text-sm text-stone-600">{x.role_title}</p> : null}
-                    {x.email ? <p className="mt-1 font-mono text-[11px] text-stone-500">{x.email}</p> : null}
+                    {x.email ? <p className="mt-1 text-xs text-stone-600">{x.email}</p> : null}
                     {ensureHttpsUrl(x.linkedin_url) ? (
-                      <p className="mt-1 font-mono text-[11px]">
+                      <p className="mt-2 text-xs">
                         <a
                           href={ensureHttpsUrl(x.linkedin_url)!}
-                          className="text-amber-800 hover:underline"
+                          className="font-medium text-amber-800 hover:underline"
                           target="_blank"
                           rel="noreferrer"
                         >
-                          LinkedIn
+                          LinkedIn profile
                         </a>
                       </p>
                     ) : null}
-                    <p className="mt-2 font-mono text-[11px] text-stone-600">
-                      access_code: <span className="font-semibold text-stone-900">{x.access_code}</span>
+                    <p className="mt-2 text-xs text-stone-600">
+                      Access code{" "}
+                      <span className="font-mono font-semibold text-stone-900">{x.access_code}</span>
                     </p>
                   </div>
-                  <button type="button" onClick={() => startEditConnector(x.id)} className={btnCode}>
-                    {editConnectorId === x.id ? "close_edit" : "edit_connector"}
+                  <button type="button" onClick={() => startEditConnector(x.id)} className={btnSecondary}>
+                    {editConnectorId === x.id ? "Close" : "Edit"}
                   </button>
                 </div>
               </li>

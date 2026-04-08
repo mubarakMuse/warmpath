@@ -66,7 +66,7 @@ export default async function AdminHomePage() {
     <>
       <PageHeader
         title="Admin"
-        description="Companies, roles, connectors, and waitlist. Use the header to sign out or jump to public pages."
+        description="Manage companies, roles, connectors, and the landing waitlist — same layout and patterns as the company and connector portals."
       />
       <AdminDashboard companies={companies} connectors={connectors} waitlist={waitlist} />
     </>

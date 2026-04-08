@@ -16,9 +16,9 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Warmpath — Human recruiting in an AI world",
+  title: "Warmpath — Trusted referrals for your most important roles",
   description:
-    "Put people back at the center of hiring. A calmer way to recruit when the world is full of AI noise.",
+    "Warm introductions from connectors who know the work. Quality candidates for critical hires—not noise.",
   icons: {
     icon: [{ url: "/warmpath-mark.svg", type: "image/svg+xml" }],
     apple: "/warmpath-mark.svg",

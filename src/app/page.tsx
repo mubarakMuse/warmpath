@@ -10,11 +10,16 @@ export default function Home() {
         </div>
 
         <h1 className="mt-10 text-center font-serif text-3xl font-semibold leading-tight tracking-tight text-warm-ink md:text-4xl">
-          Hiring that stays human.
+          Warm introductions for the roles that matter most.
         </h1>
 
-        <p className="mt-4 text-center text-base text-warm-muted">
-          Join the waitlist — we’ll reach out when we’re ready for more companies.
+        <p className="mt-5 text-center text-base leading-relaxed text-warm-muted">
+          Warmpath helps teams fill critical seats with referrals from people who actually know the work—not spray‑and‑pray
+          applicants or anonymous noise. Trusted connectors bring quality candidates; you stay in control of every stage.
+        </p>
+
+        <p className="mt-4 text-center text-sm text-stone-500">
+          We’re onboarding companies carefully. Join the waitlist and we’ll reach out when there’s a fit.
         </p>
 
         <CompanyCapture />
