@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (pathname.startsWith("/company/dashboard")) {
+  if (pathname.startsWith("/company/") && !pathname.startsWith("/company/login")) {
     if (!secret) {
       return NextResponse.redirect(new URL("/company/login", request.url));
     }
@@ -64,8 +64,7 @@ export const config = {
   matcher: [
     "/admin",
     "/admin/:path*",
-    "/company/dashboard",
-    "/company/dashboard/:path*",
+    "/company/:path*",
     "/connect/dashboard",
     "/connect/dashboard/:path*",
     "/connect/roles",

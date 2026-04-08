@@ -108,9 +108,5 @@ export default async function ConnectDashboardPage() {
 
   if (!me) redirect("/connect/login");
 
-  return (
-    <div className="min-h-dvh bg-[#faf8f5]">
-      <ConnectorPortal me={me} referrals={referrals} />
-    </div>
-  );
+  return <ConnectorPortal referrals={referrals} />;
 }

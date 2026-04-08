@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { SaasCard } from "@/app/components/shell/saas-card";
 import { CopyPublicLinkButton } from "@/app/connect/copy-public-link-button";
 import { getSiteBaseUrl } from "@/lib/site-base-url";
 import { ReferralForm } from "@/app/connect/referral-form";
@@ -71,24 +72,15 @@ export default async function ConnectRoleDetailPage({ params }: { params: Promis
   const publicUrl = `${await getSiteBaseUrl()}/r/${encodeURIComponent(row.slug)}`;
 
   return (
-    <div className="min-h-dvh bg-[#faf8f5]">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4 text-sm">
-          <Link href="/connect/roles" className="font-medium text-amber-800 hover:underline">
-            ← All open roles
-          </Link>
-          <div className="flex gap-4">
-            <Link href="/connect/dashboard" className="text-stone-600 hover:text-stone-900">
-              Dashboard
-            </Link>
-            <Link href="/" className="text-stone-500 hover:text-stone-800">
-              Home
-            </Link>
-          </div>
-        </div>
+    <>
+      <div className="mb-6">
+        <Link href="/connect/roles" className="text-sm font-medium text-amber-800 hover:underline">
+          ← All open roles
+        </Link>
+      </div>
 
-        <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-          <article className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <SaasCard className="lg:sticky lg:top-24">
             <p className="text-xs font-semibold uppercase tracking-wide text-amber-800/90">{companyName}</p>
             <h1 className="mt-2 font-serif text-2xl font-semibold text-stone-900">{row.title}</h1>
             {row.location ? <p className="mt-2 text-sm text-stone-600">{row.location}</p> : null}
@@ -122,19 +114,18 @@ export default async function ConnectRoleDetailPage({ params }: { params: Promis
                 <CopyPublicLinkButton url={publicUrl} label="Copy public job link" />
               </div>
             </div>
-          </article>
+        </SaasCard>
 
-          <aside className="rounded-xl border border-stone-200 bg-white p-6 shadow-sm lg:sticky lg:top-8">
-            <h2 className="font-semibold text-stone-900">Submit referral</h2>
-            <p className="mt-1 text-sm text-stone-600">
-              LinkedIn URL and “why they fit” are required. Name, email, and how you know them are optional.
-            </p>
-            <div className="mt-4">
-              <ReferralForm roleId={row.id} />
-            </div>
-          </aside>
-        </div>
+        <SaasCard className="lg:sticky lg:top-24">
+          <h2 className="text-sm font-semibold text-stone-900">Submit referral</h2>
+          <p className="mt-1 text-sm text-stone-600">
+            LinkedIn URL and “why they fit” are required. Name, email, and how you know them are optional.
+          </p>
+          <div className="mt-4">
+            <ReferralForm roleId={row.id} />
+          </div>
+        </SaasCard>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,18 +1,16 @@
-import { redirect } from "next/navigation";
 import {
   AdminDashboard,
   type CompanyRow,
   type ConnectorRow,
   type WaitlistRow,
 } from "@/app/admin/admin-dashboard";
+import { PageHeader } from "@/app/components/shell/page-header";
+import { SaasCard } from "@/app/components/shell/saas-card";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isAdminServerSession } from "@/lib/session/admin-session";
 
 export const metadata = { title: "Admin" };
 
 export default async function AdminHomePage() {
-  if (!(await isAdminServerSession())) redirect("/admin/login");
-
   let loadError: string | null = null;
   let companies: CompanyRow[] = [];
   let connectors: ConnectorRow[] = [];
@@ -58,15 +56,19 @@ export default async function AdminHomePage() {
 
   if (loadError) {
     return (
-      <div className="min-h-dvh bg-stone-100">
-        <div className="p-8 text-center text-sm text-red-800">{loadError}</div>
-      </div>
+      <SaasCard className="border-red-200 bg-red-50/50">
+        <p className="text-sm text-red-800">{loadError}</p>
+      </SaasCard>
     );
   }
 
   return (
-    <div className="min-h-dvh bg-stone-100">
+    <>
+      <PageHeader
+        title="Admin"
+        description="Companies, roles, connectors, and waitlist. Use the header to sign out or jump to public pages."
+      />
       <AdminDashboard companies={companies} connectors={connectors} waitlist={waitlist} />
-    </div>
+    </>
   );
 }

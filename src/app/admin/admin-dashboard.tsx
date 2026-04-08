@@ -6,7 +6,6 @@ import {
   adminCreateCompany,
   adminCreateConnector,
   adminCreateRole,
-  adminLogout,
   adminUpdateCompany,
   adminUpdateConnector,
   adminUpdateRole,
@@ -222,25 +221,14 @@ export function AdminDashboard({
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-6 py-10">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="font-serif text-2xl font-semibold text-stone-900">Admin</h1>
-          <p className="text-sm text-stone-600">Companies and roles</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/company/login" className={btnCodeGhost}>
-            company_portal
-          </Link>
-          <Link href="/connect/login" className={btnCodeGhost}>
-            connect_portal
-          </Link>
-          <form action={adminLogout} className="inline">
-            <button type="submit" className={btnCodeGhost}>
-              sign_out
-            </button>
-          </form>
-        </div>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <div className="flex flex-wrap gap-2">
+        <Link href="/company/login" className={btnCodeGhost}>
+          Company portal
+        </Link>
+        <Link href="/connect/login" className={btnCodeGhost}>
+          Connector portal
+        </Link>
       </div>
 
       <section className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm ring-1 ring-stone-100">

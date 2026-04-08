@@ -47,3 +47,21 @@ export function reasonPresetLabel(key: string | null | undefined): string | null
   const row = REASON_PRESETS.find((p) => p.value === key);
   return row?.label ?? key;
 }
+
+/** Tailwind classes for small stage pills (company + connector UIs). */
+export function referralStageBadgeClass(stage: string): string {
+  switch (stage) {
+    case "rejected":
+      return "bg-red-100 text-red-900";
+    case "hired":
+      return "bg-emerald-100 text-emerald-900";
+    case "offer":
+      return "bg-violet-100 text-violet-900";
+    case "interviewing":
+      return "bg-sky-100 text-sky-900";
+    case "reviewing":
+      return "bg-amber-100 text-amber-900";
+    default:
+      return "bg-stone-100 text-stone-700";
+  }
+}

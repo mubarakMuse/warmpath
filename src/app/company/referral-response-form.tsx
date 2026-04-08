@@ -4,29 +4,17 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { companyUpdateReferralResponse, type CompanyFormState } from "@/app/actions/company";
-import { REASON_PRESETS, REFERRAL_STAGES, referralStageLabel } from "@/lib/referral-response";
+import {
+  REASON_PRESETS,
+  REFERRAL_STAGES,
+  referralStageBadgeClass,
+  referralStageLabel,
+} from "@/lib/referral-response";
 
 const initial: CompanyFormState = {};
 
 const selectClass =
   "min-h-9 w-full rounded-lg border border-stone-200 bg-white px-2 text-sm outline-none focus:border-amber-700 focus:ring-2 focus:ring-amber-700/20";
-
-function stageBadgeClass(stage: string): string {
-  switch (stage) {
-    case "rejected":
-      return "bg-red-100 text-red-900";
-    case "hired":
-      return "bg-emerald-100 text-emerald-900";
-    case "offer":
-      return "bg-violet-100 text-violet-900";
-    case "interviewing":
-      return "bg-sky-100 text-sky-900";
-    case "reviewing":
-      return "bg-amber-100 text-amber-900";
-    default:
-      return "bg-stone-100 text-stone-700";
-  }
-}
 
 export function ReferralResponseForm({
   referralId,
@@ -57,7 +45,7 @@ export function ReferralResponseForm({
       <input type="hidden" name="referral_id" value={referralId} />
       <div className="flex flex-wrap items-center gap-2">
         <span
-          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${stageBadgeClass(referralStage)}`}
+          className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${referralStageBadgeClass(referralStage)}`}
         >
           {referralStageLabel(referralStage)}
         </span>
