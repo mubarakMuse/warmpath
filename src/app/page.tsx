@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CompanyCapture } from "@/app/components/company-capture";
 import { SiteLogo } from "@/app/components/site-logo";
 
@@ -10,29 +11,32 @@ export default function Home() {
         </div>
 
         <h1 className="mt-10 text-center font-serif text-3xl font-semibold leading-tight tracking-tight text-warm-ink md:text-4xl">
-          Warm introductions for the roles that matter most.
+          Hire through warm intros.
         </h1>
 
-        <p className="mt-5 text-center text-base leading-relaxed text-warm-muted">
-          Warmpath helps teams fill critical seats with referrals from people who actually know the work—not spray‑and‑pray
-          applicants or anonymous noise. Trusted connectors bring quality candidates; you stay in control of every stage.
+        <p className="mt-4 text-center text-base text-warm-muted">
+          One link per role. Referrals from people who know the work—not job-board noise.
         </p>
 
-        <p className="mt-4 text-center text-sm text-stone-500">
-          We’re onboarding companies carefully. Join the waitlist and we’ll reach out when there’s a fit.
-        </p>
+        <p className="mt-3 text-center text-sm text-stone-500">Join the waitlist.</p>
 
         <CompanyCapture />
 
-        <footer className="mt-auto pt-16 text-center text-xs text-stone-400">
-          <p className="flex flex-wrap justify-center gap-x-4 gap-y-1">
+        <footer className="mt-auto pt-14 text-center text-xs text-stone-400">
+          <nav className="flex flex-wrap justify-center gap-x-4 gap-y-2" aria-label="Footer">
             <a href="/company/login" className="text-amber-800/80 hover:underline">
               Company
             </a>
             <a href="/connect/login" className="text-amber-800/80 hover:underline">
               Connectors
             </a>
-          </p>
+            <Link href="/privacy" className="text-amber-800/80 hover:underline">
+              Privacy
+            </Link>
+            <Link href="/terms" className="text-amber-800/80 hover:underline">
+              Terms
+            </Link>
+          </nav>
         </footer>
       </main>
     </div>
